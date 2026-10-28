@@ -1,0 +1,8 @@
+# Çalışırken üretilenler: hesap e-postaları ve geçiş geçmişi içerir, paylaşılmaz.
+*.log
+*.log.old
+arayuz.acik.json
+tetik/
+__pycache__/
+# Eski makro denemeleri (fare koordinatları ve hesap adları)
+eski/

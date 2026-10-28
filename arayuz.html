@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claude hesapları</title>
+<style>
+:root {
+  --zemin: #f4f5f7; --yuzey: #ffffff; --yuzey-2: #f8f9fb; --cizgi: #e3e6eb;
+  --yazi: #1d2330; --soluk: #667085; --vurgu: #3b5bdb; --vurgu-acik: #e8edff;
+  --yesil: #2f9e44; --yesil-acik: #e6f6ea; --sari: #e8890c; --sari-acik: #fff3e0;
+  --kirmizi: #e03131; --kirmizi-acik: #ffe9e9; --gri: #868e96; --gri-acik: #f1f3f5;
+  --golge: 0 1px 2px rgba(16, 24, 40, .06), 0 1px 3px rgba(16, 24, 40, .08);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --zemin: #12151b; --yuzey: #1a1e26; --yuzey-2: #20252f; --cizgi: #2c323d;
+    --yazi: #e6e8ec; --soluk: #98a2b3; --vurgu: #7c95ff; --vurgu-acik: #252e4d;
+    --yesil: #51cf66; --yesil-acik: #1d3324; --sari: #ffa94d; --sari-acik: #3a2a16;
+    --kirmizi: #ff6b6b; --kirmizi-acik: #3d1f22; --gri: #adb5bd; --gri-acik: #262b34;
+    --golge: none;
+  }
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  margin: 0; background: var(--zemin); color: var(--yazi);
+  font: 14px/1.45 "Segoe UI", system-ui, sans-serif;
+}
+.kabuk { max-width: 1200px; margin: 0 auto; padding: 20px 24px 32px; }
+header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; }
+h1 { font-size: 22px; margin: 0; letter-spacing: -.01em; }
+h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--soluk); margin: 0 0 10px; }
+.gorev { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--soluk); margin-top: 2px; }
+.gorev::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--yesil); }
+.gorev.kapali::before { background: var(--kirmizi); }
+.araclar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.esik { display: inline-flex; align-items: center; gap: 6px; background: var(--yuzey); border: 1px solid var(--cizgi);
+  border-radius: 10px; padding: 4px 4px 4px 12px; box-shadow: var(--golge); }
+.esik label { color: var(--soluk); font-size: 13px; }
+.esik input { width: 56px; border: 1px solid var(--cizgi); border-radius: 7px; padding: 6px 8px; font: inherit;
+  background: var(--yuzey-2); color: var(--yazi); text-align: right; }
+button { font: inherit; border: 1px solid var(--cizgi); background: var(--yuzey); color: var(--yazi);
+  border-radius: 8px; padding: 7px 12px; cursor: pointer; white-space: nowrap; }
+button:hover:not(:disabled) { border-color: var(--vurgu); color: var(--vurgu); }
+button:disabled { opacity: .45; cursor: default; }
+button.ana { background: var(--vurgu); border-color: var(--vurgu); color: #fff; }
+button.ana:hover:not(:disabled) { color: #fff; filter: brightness(1.08); }
+button.kucuk { padding: 5px 10px; font-size: 13px; }
+button.tehlike:hover:not(:disabled) { border-color: var(--kirmizi); color: var(--kirmizi); }
+
+.ozet { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin: 18px 0; }
+.kart { background: var(--yuzey); border: 1px solid var(--cizgi); border-radius: 12px; padding: 12px 14px; box-shadow: var(--golge); }
+.kart .etiket { font-size: 12px; color: var(--soluk); }
+.kart .deger { font-size: 20px; font-weight: 600; margin-top: 2px; }
+.kart .alt { font-size: 12px; color: var(--soluk); }
+
+.bildirim { border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; font-weight: 500; }
+.bildirim.iyi { background: var(--yesil-acik); color: var(--yesil); }
+.bildirim.kotu { background: var(--kirmizi-acik); color: var(--kirmizi); }
+
+.duzen { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; align-items: start; }
+@media (max-width: 1180px) { .duzen { grid-template-columns: 1fr; } }
+.tablo-kap { overflow-x: auto; border-radius: 12px; }
+.panel { background: var(--yuzey); border: 1px solid var(--cizgi); border-radius: 12px; box-shadow: var(--golge); }
+.panel.ic { padding: 14px 16px; }
+.panel + .panel { margin-top: 16px; }
+
+table { width: 100%; border-collapse: collapse; }
+th { text-align: left; font-size: 12px; font-weight: 600; color: var(--soluk); padding: 10px 12px;
+  border-bottom: 1px solid var(--cizgi); background: var(--yuzey-2); }
+th:first-child { border-top-left-radius: 12px; } th:last-child { border-top-right-radius: 12px; }
+td { padding: 10px 12px; border-bottom: 1px solid var(--cizgi); vertical-align: middle; }
+tr:last-child td { border-bottom: 0; }
+tr.aktif td { background: var(--vurgu-acik); }
+tr.durduruldu td:not(.islem) { opacity: .55; }
+.no { width: 34px; color: var(--soluk); font-variant-numeric: tabular-nums; }
+.hesap b { display: block; font-weight: 600; }
+.hesap small, .sifir small { display: block; color: var(--soluk); font-size: 12px; }
+.kullanim { min-width: 170px; }
+.cubuk { height: 8px; border-radius: 99px; background: var(--gri-acik); overflow: hidden; }
+.cubuk span { display: block; height: 100%; border-radius: 99px; background: var(--yesil); width: var(--y); }
+.cubuk.yakin span { background: var(--sari); }
+.cubuk.dolu span { background: var(--kirmizi); }
+.yuzde { display: block; font-size: 12px; color: var(--soluk); margin-top: 3px; font-variant-numeric: tabular-nums; }
+.rozet { display: inline-block; font-size: 12px; font-weight: 600; border-radius: 99px; padding: 2px 9px; }
+.rozet.aktif { background: var(--vurgu); color: #fff; }
+.rozet.hazir { background: var(--yesil-acik); color: var(--yesil); }
+.rozet.dolu { background: var(--kirmizi-acik); color: var(--kirmizi); }
+.rozet.durduruldu { background: var(--gri-acik); color: var(--gri); }
+.rozet.okunamiyor { background: var(--sari-acik); color: var(--sari); }
+.islem { text-align: right; white-space: nowrap; }
+.islem button + button { margin-left: 6px; }
+
+ol.gecisler { list-style: none; margin: 0; padding: 0; }
+ol.gecisler li { display: grid; grid-template-columns: 74px 1fr; gap: 8px; padding: 7px 0; border-bottom: 1px dashed var(--cizgi); font-size: 13px; }
+ol.gecisler li:last-child { border-bottom: 0; }
+ol.gecisler time { color: var(--soluk); font-variant-numeric: tabular-nums; }
+ol.gecisler .neden { color: var(--soluk); font-size: 12px; }
+.ekle { display: flex; gap: 8px; }
+.ekle input { flex: 1; min-width: 0; border: 1px solid var(--cizgi); border-radius: 8px; padding: 7px 10px; font: inherit;
+  background: var(--yuzey-2); color: var(--yazi); }
+.ipucu { color: var(--soluk); font-size: 12px; margin: 8px 0 0; }
+.ekle-durum { margin: 10px 0 0; font-size: 13px; font-weight: 500; display: grid; gap: 6px; justify-items: start; }
+.ekle-durum .adim { color: var(--soluk); font-weight: 400; font-size: 12px; }
+.ekle-durum.suruyor { color: var(--sari); } .ekle-durum.bitti { color: var(--yesil); } .ekle-durum.olmadi { color: var(--kirmizi); }
+footer { color: var(--soluk); font-size: 12px; margin-top: 16px; }
+.bos { padding: 40px; text-align: center; color: var(--soluk); }
+</style>
+</head>
+<body>
+<div class="kabuk">
+  <header>
+    <div>
+      <h1>Claude hesapları</h1>
+      <span id="gorev" class="gorev">Otomatik geçiş çalışıyor</span>
+    </div>
+    <div class="araclar">
+      <form id="esikForm" class="esik">
+        <label for="esik">Geçiş eşiği %</label>
+        <input id="esik" type="number" min="50" max="99" step="1" required>
+        <button type="submit" class="ana kucuk">Kaydet</button>
+      </form>
+      <button id="ekleGit">+ Hesap ekle</button>
+      <button id="enIyi">En boş hesaba geç</button>
+      <button id="yenile">Yenile</button>
+    </div>
+  </header>
+
+  <section class="ozet" id="ozet"></section>
+  <div id="bildirim" class="bildirim" role="status" aria-live="polite" hidden></div>
+
+  <div class="duzen">
+    <section class="panel tablo-kap">
+      <table>
+        <thead><tr><th>No</th><th>Hesap</th><th>5 saatlik kullanım</th><th>Sıfırlanma</th><th class="haftalik">Haftalık</th><th>Durum</th><th></th></tr></thead>
+        <tbody id="hesaplar"><tr><td colspan="7" class="bos">Yükleniyor…</td></tr></tbody>
+      </table>
+    </section>
+
+    <aside>
+      <section class="panel ic">
+        <h2>Son geçişler</h2>
+        <ol id="gecisler" class="gecisler"></ol>
+      </section>
+      <section class="panel ic">
+        <h2>Hesap ekle</h2>
+        <form id="ekleForm" class="ekle">
+          <input id="eposta" type="email" placeholder="ornek@sirket.com" required>
+          <button type="submit" class="ana">Ekle</button>
+        </form>
+        <p class="ipucu">Tarayıcıda claude.ai'dan çıkış sekmesi ve bir kutu açılır: o hesapla gir, kutuda Tamam'a bas. Kayıtlı bir hesabın girişini tazelemek için de aynı e-postayı yaz.</p>
+        <div id="ekleDurum" class="ekle-durum" hidden></div>
+      </section>
+    </aside>
+  </div>
+
+  <footer id="alt"></footer>
+</div>
+
+<script>
+const ANAHTAR = new URLSearchParams(location.search).get('k');
+const DURUM_ADI = { aktif: 'Aktif', hazir: 'Hazır', dolu: 'Dolu', durduruldu: 'Durduruldu', okunamiyor: 'Okunamıyor' };
+let veri = null;
+let mesgul = false;
+
+async function api(yol, govde) {
+  const r = await fetch(yol, {
+    method: govde ? 'POST' : 'GET',
+    headers: { 'X-Anahtar': ANAHTAR, 'Content-Type': 'application/json' },
+    body: govde ? JSON.stringify(govde) : undefined,
+  });
+  let j = {};
+  try { j = await r.json(); } catch { j = { hata: 'Sunucudan yanıt gelmedi.' }; }
+  if (!r.ok || j.hata) throw new Error(j.hata || ('Hata ' + r.status));
+  return j;
+}
+
+function bildir(metin, iyi) {
+  const k = document.getElementById('bildirim');
+  k.textContent = metin;
+  k.className = 'bildirim ' + (iyi ? 'iyi' : 'kotu');
+  k.hidden = false;
+  clearTimeout(bildir.zaman);
+  if (iyi) bildir.zaman = setTimeout(() => { k.hidden = true; }, 8000);
+}
+
+function saat(iso) {
+  return new Date(iso).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+}
+
+function kalan(iso) {
+  const dk = Math.round((new Date(iso) - Date.now()) / 60000);
+  if (dk <= 0) return 'şimdi';
+  const sa = Math.floor(dk / 60);
+  return (sa ? sa + ' sa ' : '') + (dk % 60) + ' dk sonra';
+}
+
+function el(etiket, ozellik = {}, ...cocuklar) {
+  const e = document.createElement(etiket);
+  for (const [a, d] of Object.entries(ozellik)) {
+    if (a === 'class') e.className = d;
+    else if (a === 'style') e.setAttribute('style', d);
+    else if (a.startsWith('on')) e.addEventListener(a.slice(2), d);
+    else if (d !== false && d != null) e.setAttribute(a, d === true ? '' : d);
+  }
+  for (const c of cocuklar) if (c != null) e.append(c);
+  return e;
+}
+
+function kart(etiket, deger, alt) {
+  return el('div', { class: 'kart' }, el('div', { class: 'etiket' }, etiket),
+    el('div', { class: 'deger' }, deger), alt ? el('div', { class: 'alt' }, alt) : null);
+}
+
+function ciz() {
+  const v = veri;
+  const esikKutusu = document.getElementById('esik');
+  if (document.activeElement !== esikKutusu) esikKutusu.value = v.esik;
+
+  const gorev = document.getElementById('gorev');
+  gorev.textContent = v.gorev ? 'Otomatik geçiş çalışıyor · %' + v.esik + "'de en boş hesaba geçer" : 'Otomatik geçiş çalışmıyor';
+  gorev.classList.toggle('kapali', !v.gorev);
+
+  const aktif = v.hesaplar.find(h => h.aktif);
+  const hazir = v.hesaplar.filter(h => h.durum === 'hazir');
+  const dolu = v.hesaplar.filter(h => h.durum === 'dolu').sort((a, b) => (a.sifirlanma || '').localeCompare(b.sifirlanma || ''));
+  const durdurulan = v.hesaplar.filter(h => h.durduruldu);
+  const ozet = document.getElementById('ozet');
+  ozet.replaceChildren(
+    kart('Aktif hesap', aktif ? aktif.ad : '—', aktif && aktif.yuzde != null ? '%' + aktif.yuzde + ' kullanıldı' : ''),
+    kart('Hazır', hazir.length + ' hesap', 'eşiğin altında'),
+    kart('Dolu', dolu.length + ' hesap', dolu.length ? 'ilk açılan: ' + dolu[0].ad + ' ' + saat(dolu[0].sifirlanma) : ''),
+    kart('Durdurulan', durdurulan.length + ' hesap', durdurulan.map(h => h.ad).join(', ')),
+  );
+
+  // Aynı anda tek giriş yapılabilir: ikincisi ilkinin giriş dosyasının üstüne yazardı.
+  const eklemeSuruyor = (v.ekleme || {}).durum === 'suruyor';
+  // Haftalık sınırı Anthropic çoğu hesapta göndermiyor; hiçbirinde yoksa sütun boşuna yer kaplamasın.
+  const haftalikVar = v.hesaplar.some(h => h.haftalik != null);
+  document.querySelector('th.haftalik').hidden = !haftalikVar;
+  const govde = document.getElementById('hesaplar');
+  govde.replaceChildren(...v.hesaplar.map(h => {
+    const y = h.yuzde == null ? 0 : h.yuzde;
+    const sinif = y >= v.esik ? 'dolu' : (y >= v.esik - 15 ? 'yakin' : '');
+    const kullanim = h.yuzde == null
+      ? el('td', { class: 'kullanim' }, el('span', { class: 'yuzde' }, 'okunamadı' + (h.hata ? ' (' + h.hata + ')' : '')))
+      : el('td', { class: 'kullanim' }, el('div', { class: 'cubuk ' + sinif }, el('span', { style: '--y:' + Math.min(y, 100) + '%' })),
+          el('span', { class: 'yuzde' }, '%' + y));
+    const sifir = h.sifirlanma
+      ? el('td', { class: 'sifir' }, saat(h.sifirlanma), el('small', {}, kalan(h.sifirlanma)))
+      : el('td', { class: 'sifir' }, '—', el('small', {}, h.yuzde === 0 ? 'kullanılmadı' : ''));
+    return el('tr', { class: h.durum },
+      el('td', { class: 'no' }, String(h.no)),
+      el('td', { class: 'hesap' }, el('b', {}, h.ad), el('small', {}, h.kurum)),
+      kullanim, sifir,
+      haftalikVar ? el('td', { class: 'haftalik' }, h.haftalik == null ? '—' : '%' + h.haftalik) : null,
+      el('td', {}, el('span', { class: 'rozet ' + h.durum }, DURUM_ADI[h.durum])),
+      el('td', { class: 'islem' },
+        // Okunamayan hesabın girişi çoğunlukla ölmüştür; tek tıkla yeniden giriş.
+        // Durdurulmuş hesabın da kullanımı okunamıyor olabilir; düğme durumdan değil hatadan çıkar.
+        (h.durum === 'okunamiyor' || h.yuzde == null)
+          ? el('button', { class: 'kucuk ana', disabled: mesgul || eklemeSuruyor,
+              title: eklemeSuruyor ? 'Önce süren giriş bitsin ya da İptal de' : 'Tarayıcıda bu hesapla yeniden giriş yap',
+              onclick: () => islem('ekle', { eposta: h.eposta }, h.ad + ' için giriş başlıyor…') }, 'Yeniden giriş')
+          : null,
+        el('button', { class: 'kucuk', disabled: h.aktif || mesgul, title: 'Bu hesaba hemen geç',
+          onclick: () => islem('gec', { no: h.no }, h.ad + ' hesabına geçiliyor…') }, 'Geç'),
+        h.durduruldu
+          ? el('button', { class: 'kucuk', disabled: mesgul, title: 'Otomatik geçiş sırasına geri al',
+              onclick: () => islem('ac', { no: h.no }, h.ad + ' açılıyor…') }, 'Aç')
+          : el('button', { class: 'kucuk', disabled: mesgul, title: 'Otomatik geçiş bu hesaba gitmesin',
+              onclick: () => islem('durdur', { no: h.no }, h.ad + ' durduruluyor…') }, 'Durdur'),
+        el('button', { class: 'kucuk tehlike', disabled: h.aktif || mesgul,
+          title: h.aktif ? 'Aktif hesap silinemez: önce başka hesaba geç' : 'Hesabı listeden ve kayıtlı girişini sil',
+          onclick: () => {
+            if (confirm(h.ad + ' listeden silinsin mi?\n\nKayıtlı girişi de silinir. Geri eklemek için Hesap ekle ile yeniden giriş gerekir.'))
+              islem('sil', { no: h.no }, h.ad + ' siliniyor…');
+          } }, 'Sil')),
+    );
+  }));
+
+  const liste = document.getElementById('gecisler');
+  liste.replaceChildren(...(v.gecisler.length ? v.gecisler.map(g => {
+    const z = new Date(g.zaman);
+    const ne = g.tur === 'bekleme'
+      ? el('span', {}, 'Bütün hesaplar dolu, bekleniyor')
+      : el('span', {}, (g.kimden ? g.kimden + ' → ' : '→ ') + g.kime, ' ', el('span', { class: 'neden' }, '(' + g.neden + ')'));
+    return el('li', {}, el('time', {}, z.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit' }) + ' ' + saat(g.zaman)), ne);
+  }) : [el('li', {}, el('span', {}, ''), el('span', { class: 'neden' }, 'Henüz geçiş yok'))]));
+
+  const ek = v.ekleme || {};
+  const ekDurum = document.getElementById('ekleDurum');
+  ekDurum.hidden = !ek.durum;
+  ekDurum.className = 'ekle-durum ' + (ek.durum || '');
+  ekDurum.replaceChildren(
+    el('div', {}, ek.mesaj || ''),
+    eklemeSuruyor && ek.adim ? el('div', { class: 'adim' }, 'Şu an: ' + ek.adim) : null,
+    eklemeSuruyor ? el('div', { class: 'adim' }, (ek.sure_dk || 0) + ' dakikadır sürüyor · giriş 4 dakikada tamamlanmazsa yeniden sorulur') : null,
+    eklemeSuruyor ? el('button', { class: 'kucuk tehlike', disabled: mesgul,
+      onclick: () => islem('ekle-iptal', {}, 'Giriş iptal ediliyor…') }, 'İptal') : null,
+  );
+  document.querySelector('#ekleForm button').disabled = eklemeSuruyor || mesgul;
+
+  document.getElementById('alt').textContent =
+    'Son yenileme ' + saat(v.saat) + ' · 30 saniyede bir kendiliğinden yenilenir · kullanım bilgisi cswap\'ın deposundan okunur, Anthropic\'e fazladan istek gitmez';
+}
+
+async function yukle(sessiz) {
+  try {
+    veri = await api('/api/durum');
+    ciz();
+  } catch (e) {
+    // fetch ağ hatasında TypeError atar: sunucu kapanmış demektir.
+    bildir(e instanceof TypeError
+      ? 'Bağlantı koptu. Pencereyi kapatıp masaüstündeki kısayoldan yeniden aç.'
+      : 'Durum okunamadı: ' + e.message, false);
+  }
+}
+
+async function islem(ad, govde, beklerken) {
+  if (mesgul) return;
+  mesgul = true;
+  if (veri) ciz();
+  bildir(beklerken, true);
+  try {
+    const j = await api('/api/' + ad, govde);
+    bildir(j.mesaj, true);
+  } catch (e) {
+    bildir(e.message, false);
+  } finally {
+    mesgul = false;
+    await yukle(false);
+  }
+}
+
+document.getElementById('esikForm').addEventListener('submit', ev => {
+  ev.preventDefault();
+  const kutu = document.getElementById('esik');
+  islem('esik', { yuzde: Number(kutu.value) }, 'Eşik kaydediliyor…').then(() => kutu.blur());
+});
+document.getElementById('ekleGit').addEventListener('click', () => {
+  const kutu = document.getElementById('eposta');
+  kutu.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  kutu.focus();
+});
+document.getElementById('enIyi').addEventListener('click', () => islem('en-iyi', {}, 'En boş hesap aranıyor…'));
+document.getElementById('yenile').addEventListener('click', () => yukle(false));
+document.getElementById('ekleForm').addEventListener('submit', ev => {
+  ev.preventDefault();
+  const kutu = document.getElementById('eposta');
+  islem('ekle', { eposta: kutu.value.trim() }, 'Hesap ekleme başlıyor…').then(() => { kutu.value = ''; });
+});
+
+// Giriş sürerken adımı 5 saniyede bir göster; yoksa 30 saniyede bir yenilemek yeter.
+let sonYukleme = 0;
+yukle(false).then(() => { sonYukleme = Date.now(); });
+setInterval(() => {
+  const suruyor = veri && veri.ekleme && veri.ekleme.durum === 'suruyor';
+  if (mesgul || (!suruyor && Date.now() - sonYukleme < 30000)) return;
+  sonYukleme = Date.now();
+  yukle(true);
+}, 5000);
+</script>
+</body>
+</html>

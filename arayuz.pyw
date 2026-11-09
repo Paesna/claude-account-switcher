@@ -5,7 +5,15 @@ Masaüstündeki "Claude hesapları" kısayolu bunu pythonw ile başlatır. Sayfa
 127.0.0.1'den dinleyen bir sunucudan gelir ve Chrome'un uygulama penceresinde açılır.
 Her açılışta rastgele bir anahtar üretilir; anahtarı başlıkta taşımayan istek reddedilir.
 Yoksa tarayıcıda açık herhangi bir web sayfası yerel sunucuya istek atıp hesap
-değiştirebilirdi. Pencere kapanınca sayfa yoklamayı bırakır, sunucu 3 dakika sonra kapanır.
+değiştirebilirdi.
+
+Pencere kapanırken sayfa haber verir, sunucu 90 sn sonra kapanır. Haber gelmezse
+12 saat yoklama gelmeyince kapanır: Chrome simge durumundaki pencerenin zamanlayıcısını
+gece boyu dakikaya bir indirebiliyor ya da donduruyor, sabah pencere kopmuş olmasın.
+
+Bu dosya değişince sunucu kendini aynı port ve anahtarla yeniden başlatır; açık pencere
+kopmadan yeni kodla sürer. 07.11'de sunucu 18:30'dan beri eski kodla çalışıyordu: sayfa
+(her açılışta diskten okunur) haftalık eşiği gönderiyor, eski sunucu yok sayıyordu.
 """
 import ctypes
 import json
@@ -13,6 +21,7 @@ import os
 import re
 import secrets
 import subprocess
+import sys
 import threading
 import time
 import traceback
@@ -21,7 +30,10 @@ from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
-KLASOR = os.path.dirname(os.path.abspath(__file__))
+# Kod değişince eski süreç yenisine "port anahtar" devreder; alt süreçlere (cswap) geçmesin.
+DEVIR = os.environ.pop('ARAYUZ_DEVIR', '').split()
+KAYNAK = os.path.abspath(__file__)
+KLASOR = os.path.dirname(KAYNAK)
 SAYFA = os.path.join(KLASOR, 'arayuz.html')
 ACIK_DOSYASI = os.path.join(KLASOR, 'arayuz.acik.json')
 LOG = os.path.join(KLASOR, 'arayuz.log')
@@ -44,7 +56,10 @@ TARAYICILAR = [
 ]
 ORTAM = dict(os.environ, PYTHONUTF8='1')
 CREATE_NO_WINDOW = 0x08000000
-BOSTA_KAPAN_SN = 180
+ERROR_ALREADY_EXISTS = 183
+MUTEX = 'Local\\claude-account-switcher-ui'
+BOSTA_KAPAN_SN = 12 * 3600
+KAPANDI_BEKLE_SN = 90
 EPOSTA = re.compile(r'^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$')
 
 k32 = ctypes.WinDLL('kernel32', use_last_error=True)
@@ -52,15 +67,24 @@ k32.CreateMutexW.restype = ctypes.c_void_p
 k32.OpenMutexW.restype = ctypes.c_void_p
 k32.CloseHandle.argtypes = [ctypes.c_void_p]
 
-ANAHTAR = secrets.token_urlsafe(24)
+ANAHTAR = DEVIR[1] if len(DEVIR) == 2 else secrets.token_urlsafe(24)
 son_istek = time.time()
 ekleme = {}          # sürmekte olan hesap ekleme: eposta, durum, mesaj
+islem_sayisi = 0     # yanıtı beklenen POST'lar: sürerken sunucu kapanmaz, devretmez
 kilit = threading.Lock()
 
 
 def log(metin):
-    with open(LOG, 'a', encoding='utf-8') as f:
-        f.write(time.strftime('%Y-%m-%d %H:%M:%S ') + metin + '\n')
+    try:
+        if os.path.getsize(LOG) > 1_000_000:
+            os.replace(LOG, LOG + '.old')
+    except OSError:
+        pass
+    try:
+        with open(LOG, 'a', encoding='utf-8') as f:
+            f.write(time.strftime('%Y-%m-%d %H:%M:%S ') + metin + '\n')
+    except OSError:
+        pass
 
 
 def cswap(*arg, zaman=120):
@@ -69,16 +93,52 @@ def cswap(*arg, zaman=120):
     return r.returncode, r.stdout, r.stderr
 
 
+_liste = {'zaman': 0.0, 'veri': None}
+_liste_kilit = threading.Lock()
+
+
+def cswap_liste(taze=False):
+    """cswap list --json (~1 sn, üç süreç). Aynı anda gelen yoklamalar tek çağrıyı paylaşır;
+    sonuç 10 sn geçerli, bir işlemden sonra tazelenir."""
+    with _liste_kilit:
+        if not taze and _liste['veri'] is not None and time.monotonic() - _liste['zaman'] < 10:
+            return _liste['veri']
+        kod, cikti, hata = cswap('list', '--json', zaman=60)
+        # cswap bir hesabın kullanımı okunamayınca listeyi yine yazıp sıfırdan farklı kodla
+        # bitebiliyor (28.10 11:52); JSON geldiyse onu kullan. Hesap listesi olmayan JSON da
+        # geliyor (06.11 13:18 KeyError 'accounts').
+        try:
+            veri = json.loads(cikti)
+        except ValueError:
+            veri = None
+        if not isinstance(veri, dict) or not isinstance(veri.get('accounts'), list):
+            raise RuntimeError('Hesap listesi okunamadı (kod %s): %s' % (kod, ilk_satir(hata, cikti)))
+        _liste.update(zaman=time.monotonic(), veri=veri)
+        return veri
+
+
+def liste_bayat():
+    with _liste_kilit:
+        _liste['veri'] = None
+
+
 def ilk_satir(*metinler):
     return next((s.strip() for m in metinler for s in m.splitlines() if s.strip()), '')
 
 
 def esik_oku():
+    saatlik = 90
+    haftalik = None
     try:
         with open(CSWAP_AYAR, encoding='utf-8') as f:
-            return int(round(json.load(f)['autoswitch']['threshold']))
+            ayar = json.load(f).get('autoswitch', {})
+            if 'threshold' in ayar and ayar['threshold'] is not None:
+                saatlik = int(round(ayar['threshold']))
+            if 'weeklyThreshold' in ayar and ayar['weeklyThreshold'] is not None:
+                haftalik = int(round(ayar['weeklyThreshold']))
     except Exception:
-        return 90
+        pass
+    return saatlik, haftalik
 
 
 def gorev_calisiyor():
@@ -103,33 +163,41 @@ def ad(eposta):
     return eposta.split('@')[0]
 
 
-def hesaplar(esik):
-    kod, cikti, hata = cswap('list', '--json')
-    # cswap bir hesabın kullanımı okunamayınca listeyi yine yazıp sıfırdan farklı kodla
-    # bitebiliyor (28.10 11:52); JSON geldiyse onu kullan, gelmediyse hatayı göster.
-    try:
-        veri = json.loads(cikti)
-    except ValueError:
-        raise RuntimeError('Hesap listesi okunamadı (kod %s): %s' % (kod, ilk_satir(hata, cikti)))
+def hesaplar(esik, haftalik_esik=None):
+    veri = cswap_liste()
     simdi = datetime.now(timezone.utc)
     satirlar = []
     for a in veri['accounts']:
         u = a.get('usage') or {}
         b, h = u.get('fiveHour'), u.get('sevenDay')
         yuzde = round(b['pct']) if b and b.get('pct') is not None else None
+        h_yuzde = round(h['pct']) if h and h.get('pct') is not None else None
         sifir = None
         if b and b.get('resetsAt'):
             sifir = datetime.fromisoformat(b['resetsAt'])
             if sifir <= simdi:
                 # Pencere sıfırlanmış, depo henüz tazelenmemiş: eski yüzde artık geçersiz.
                 yuzde, sifir = 0, None
+        h_sifir = None
+        if h and h.get('resetsAt'):
+            h_sifir = datetime.fromisoformat(h['resetsAt'])
+            if h_sifir <= simdi:
+                h_yuzde, h_sifir = 0, None
+        saatlik_dolu = yuzde is not None and yuzde >= esik
+        # Haftalık eşik boşsa cswap haftalık pencerede de 5 saatlik eşiği kullanıyor.
+        h_sinir = haftalik_esik if haftalik_esik is not None else esik
+        haftalik_dolu = h_yuzde is not None and h_yuzde >= h_sinir
+        # Dolu hesap ne zaman yeniden kullanılabilir: haftalıkta doluysa 5 saatlik sıfırlansa da
+        # açılmaz, haftalık sıfırlanmayı bekler; ikisi de doluysa geç olanı.
+        acilma = max((t for t, dolu in ((sifir, saatlik_dolu), (h_sifir, haftalik_dolu)) if dolu and t),
+                     default=None)
         if a.get('active'):
             durum = 'aktif'
         elif a.get('disabled'):
             durum = 'durduruldu'
         elif a.get('usageStatus') != 'ok' or yuzde is None:
             durum = 'okunamiyor'
-        elif yuzde >= esik:
+        elif saatlik_dolu or haftalik_dolu:
             durum = 'dolu'
         else:
             durum = 'hazir'
@@ -138,18 +206,22 @@ def hesaplar(esik):
             'kurum': a.get('organizationName') or '', 'durum': durum,
             'durduruldu': bool(a.get('disabled')), 'aktif': bool(a.get('active')),
             'yuzde': yuzde, 'sifirlanma': sifir.isoformat() if sifir else None,
-            'haftalik': round(h['pct']) if h and h.get('pct') is not None else None,
+            'haftalik': h_yuzde,
+            'haftalik_sifirlanma': h_sifir.isoformat() if h_sifir else None,
+            'acilma': acilma.isoformat() if acilma else None,
+            'saatlik_dolu': saatlik_dolu,
+            'haftalik_dolu': haftalik_dolu,
             'hata': a.get('usageError') or '',
         })
     sira = {'aktif': 0, 'hazir': 1, 'dolu': 2, 'okunamiyor': 3, 'durduruldu': 4}
     satirlar.sort(key=lambda s: (sira[s['durum']],
                                  s['yuzde'] if s['durum'] == 'hazir' else 0,
-                                 s['sifirlanma'] or '9999', s['no']))
+                                 (s['acilma'] if s['durum'] == 'dolu' else s['sifirlanma']) or '9999', s['no']))
     return satirlar
 
 
 def kuyruk(yol, bayt=400_000):
-    """Günlükler 5 MB'a kadar büyüyor; her yoklamada yalnız sonu okunur."""
+    """Günlüğün yalnız sonu (hesap ekleme adımı için)."""
     try:
         with open(yol, 'rb') as f:
             f.seek(0, 2)
@@ -159,54 +231,119 @@ def kuyruk(yol, bayt=400_000):
         return []
 
 
+class Izleyici:
+    """Günlüğün yalnız son okumadan beri eklenen kısmını verir; dosya dönünce (küçülünce) baştan.
+
+    Eskiden her yoklamada her günlüğün son 400 KB'ı baştan okunup taranıyordu. 20 hesaplı
+    cswap-auto.log'da bir tur ~2,5 KB: 400 KB yalnız son ~2,5 saatti, seyrek geçişler
+    "Son geçişler"den düşüyordu. Şimdi ilk açılışta bütün dosya bir kez, sonra yalnız ekler okunur.
+    """
+
+    def __init__(self, yol):
+        self.yol, self.konum, self.artik = yol, None, b''
+
+    def yeni_satirlar(self):
+        try:
+            boyut = os.path.getsize(self.yol)
+        except OSError:
+            return []
+        if self.konum is None or boyut < self.konum:
+            self.konum, self.artik = 0, b''
+        if boyut == self.konum:
+            return []
+        try:
+            with open(self.yol, 'rb') as f:
+                f.seek(self.konum)
+                veri = f.read(boyut - self.konum)
+        except OSError:
+            return []
+        self.konum += len(veri)
+        satirlar = (self.artik + veri).split(b'\n')
+        self.artik = satirlar.pop()  # yarım kalan son satır bir sonraki okumaya
+        return [s.decode('utf-8', errors='replace').rstrip('\r') for s in satirlar]
+
+
 NEDEN = {'proactive': 'eşikte', 'at-limit': 'doldu'}
+OTOMATIK = re.compile(r'^(\S+)\s+\S+\s+Switched Account-(\d+) -> Account-(\d+) \(([^)]+)\)(?: \(([\w-]+)\))?')
+BEKLEME = re.compile(r'^\S+\s+\S+\s+all accounts exhausted')
+SAAT = re.compile(r'^(\d{4}-\d\d-\d\d \d\d:\d\d:\d\d) ')
+ELLE = re.compile(r'cswap switch \((elle|[^)]*)\): Switched to Account-(\d+) \(([^)]+)\)')
+_auto_izleyici = Izleyici(AUTO_LOG)
+_el_izleyiciler = [[Izleyici(GECIS_LOG), None], [Izleyici(ESKI_OLAYLAR), None]]  # [izleyici, son saat]
+_olaylar = {}
+_olay_kilit = threading.Lock()
+
+
+def _olay(o):
+    # Hızlı tetik geçişi hem kendi günlüğüne hem kota izleyicisinin günlüğüne düşebilir.
+    _olaylar[(o['zaman'], o.get('kime'), o['tur'])] = o
 
 
 def gecisler(adlar):
-    olaylar = []
-    for s in kuyruk(AUTO_LOG):
-        m = re.match(r'^(\S+)\s+\S+\s+Switched Account-(\d+) -> Account-(\d+) \(([^)]+)\)(?: \(([\w-]+)\))?', s)
-        if m:
-            olaylar.append({'zaman': m.group(1)[:19], 'kimden': adlar.get(int(m.group(2)), '#' + m.group(2)),
-                            'kime': ad(m.group(4)), 'neden': NEDEN.get(m.group(5), m.group(5) or ''),
-                            'tur': 'otomatik'})
-        elif re.match(r'^\S+\s+\S+\s+all accounts exhausted', s):
-            olaylar.append({'zaman': s[:19], 'tur': 'bekleme'})
-    for yol in (GECIS_LOG, ESKI_OLAYLAR):
-        son_saat = None
-        for s in kuyruk(yol, 100_000):
-            m = re.match(r'^(\d{4}-\d\d-\d\d \d\d:\d\d:\d\d) ', s)
+    with _olay_kilit:
+        for s in _auto_izleyici.yeni_satirlar():
+            m = OTOMATIK.match(s)
             if m:
-                son_saat = m.group(1).replace(' ', 'T')
-            m = re.search(r'cswap switch \((elle|[^)]*)\): Switched to Account-(\d+) \(([^)]+)\)', s)
-            if m and son_saat:
-                elle = m.group(1) == 'elle'
-                olaylar.append({'zaman': son_saat, 'kime': ad(m.group(3)),
-                                'neden': 'elle' if elle else 'hızlı tetik', 'tur': 'elle' if elle else 'hizli'})
-    # Hızlı tetik geçişi hem kendi günlüğüne hem kota izleyicisinin günlüğüne düşebilir.
-    olaylar = list({(o['zaman'], o.get('kime'), o['tur']): o for o in olaylar}.values())
-    olaylar.sort(key=lambda o: o['zaman'], reverse=True)
+                _olay({'zaman': m.group(1)[:19], 'kimden_no': int(m.group(2)), 'kime': ad(m.group(4)),
+                       'neden': NEDEN.get(m.group(5), m.group(5) or ''), 'tur': 'otomatik'})
+            elif BEKLEME.match(s):
+                _olay({'zaman': s[:19], 'tur': 'bekleme'})
+        for kayit in _el_izleyiciler:
+            for s in kayit[0].yeni_satirlar():
+                m = SAAT.match(s)
+                if m:
+                    kayit[1] = m.group(1).replace(' ', 'T')
+                m = ELLE.search(s)
+                if m and kayit[1]:
+                    elle = m.group(1) == 'elle'
+                    _olay({'zaman': kayit[1], 'kime': ad(m.group(3)),
+                           'neden': 'elle' if elle else 'hızlı tetik', 'tur': 'elle' if elle else 'hizli'})
+        olaylar = sorted(_olaylar.values(), key=lambda o: o['zaman'], reverse=True)
+        if len(olaylar) > 300:
+            for o in olaylar[300:]:
+                _olaylar.pop((o['zaman'], o.get('kime'), o['tur']), None)
     # "Hepsi dolu" her 10 dakikada bir yazılıyor; ardışık olanlardan yalnız ilki kalır.
     sonuc = []
     for o in olaylar:
         if o['tur'] == 'bekleme' and sonuc and sonuc[-1]['tur'] == 'bekleme':
             sonuc[-1] = o
             continue
+        o = dict(o)
+        if 'kimden_no' in o:
+            no = o.pop('kimden_no')
+            o['kimden'] = adlar.get(no, '#%d' % no)
         sonuc.append(o)
-    return sonuc[:15]
+        if len(sonuc) == 15:
+            break
+    return sonuc
+
+
+_sayfa = {'surum': None}
+
+
+def sayfa_surumu():
+    """arayuz.html'in değişme zamanı; açık sayfa bunu görünce kendini yeniler.
+    Dosya 20 sn durulmadan bildirilmez: yarım düzenlenmiş sayfa yüklenmesin."""
+    try:
+        m = os.path.getmtime(SAYFA)
+        if _sayfa['surum'] is None or time.time() - m > 20:
+            _sayfa['surum'] = m
+    except OSError:
+        pass
+    return _sayfa['surum']
 
 
 def durum():
-    esik = esik_oku()
-    liste = hesaplar(esik)
+    esik, haftalik_esik = esik_oku()
+    liste = hesaplar(esik, haftalik_esik)
     with kilit:
         ek = dict(ekleme)
     if ek.get('durum') == 'suruyor':
         ek['adim'] = ekleme_adimi()
         ek['sure_dk'] = int((time.time() - ek.get('basladi', time.time())) // 60)
-    return {'esik': esik, 'gorev': gorev_calisiyor(), 'hesaplar': liste,
+    return {'esik': esik, 'haftalik_esik': haftalik_esik, 'gorev': gorev_calisiyor(), 'hesaplar': liste,
             'gecisler': gecisler({h['no']: h['ad'] for h in liste}), 'ekleme': ek,
-            'saat': datetime.now().astimezone().isoformat()}
+            'saat': datetime.now().astimezone().isoformat(), 'sayfa': sayfa_surumu()}
 
 
 def no_al(govde):
@@ -258,21 +395,50 @@ def esik_kaydet(govde):
     try:
         yuzde = int(govde['yuzde'])
     except (KeyError, TypeError, ValueError):
-        raise ValueError('Eşik bir sayı olmalı.')
+        raise ValueError('5 saatlik eşik bir sayı olmalı.')
     if not 50 <= yuzde <= 99:
-        raise ValueError('Eşik 50 ile 99 arasında olmalı.')
+        raise ValueError('5 saatlik eşik 50 ile 99 arasında olmalı.')
+
+    haftalik_ham = govde.get('haftalik_yuzde')
+    haftalik_yuzde = None
+    if haftalik_ham is not None and str(haftalik_ham).strip() != '':
+        try:
+            haftalik_yuzde = int(haftalik_ham)
+        except (TypeError, ValueError):
+            raise ValueError('Haftalık eşik bir sayı olmalı.')
+        if not 50 <= haftalik_yuzde <= 99:
+            raise ValueError('Haftalık eşik 50 ile 99 arasında olmalı (veya boş bırakılmalı).')
+
     kod, cikti, hata = cswap('config', 'set', 'autoswitch.threshold', str(yuzde))
     if kod != 0:
-        raise RuntimeError('Kaydedilemedi: ' + ilk_satir(hata, cikti))
+        raise RuntimeError('5 saatlik eşik kaydedilemedi: ' + ilk_satir(hata, cikti))
+
+    if haftalik_yuzde is not None:
+        kod, cikti, hata = cswap('config', 'set', 'autoswitch.weeklyThreshold', str(haftalik_yuzde))
+        if kod != 0:
+            raise RuntimeError('Haftalık eşik kaydedilemedi: ' + ilk_satir(hata, cikti))
+    else:
+        # Boş bırakıldıysa haftalık eşiği kaldır
+        cswap('config', 'unset', 'autoswitch.weeklyThreshold')
+
     # Durum satırındaki hızlı tetik (varsa) aynı eşikte çalışsın; ayrışırsa biri erken biri geç geçer.
     if os.path.exists(KOTA_AYAR):
-        with open(KOTA_AYAR, encoding='utf-8') as f:
-            ayar = json.load(f)
-        ayar['betik_esigi'] = yuzde
-        with open(KOTA_AYAR, 'w', encoding='utf-8') as f:
-            json.dump(ayar, f, ensure_ascii=False, indent=2)
+        try:
+            with open(KOTA_AYAR, encoding='utf-8') as f:
+                ayar = json.load(f)
+            ayar['betik_esigi'] = yuzde
+            if haftalik_yuzde is not None:
+                ayar['haftalik_betik_esigi'] = haftalik_yuzde
+            elif 'haftalik_betik_esigi' in ayar:
+                del ayar['haftalik_betik_esigi']
+            with open(KOTA_AYAR, 'w', encoding='utf-8') as f:
+                json.dump(ayar, f, ensure_ascii=False, indent=2)
+        except Exception:
+            pass
     gorevi_yeniden_baslat()
-    return 'Eşik %%%d kaydedildi, otomatik geçiş yeniden başlatıldı.' % yuzde
+    if haftalik_yuzde is not None:
+        return 'Eşikler (5 saatlik: %%%d, haftalık: %%%d) kaydedildi, otomatik geçiş yeniden başlatıldı.' % (yuzde, haftalik_yuzde)
+    return '5 saatlik eşik %%%d kaydedildi (haftalık sınır yok), otomatik geçiş yeniden başlatıldı.' % yuzde
 
 
 EKLEME_LOG = os.path.join(KLASOR, 'ekleme.log')
@@ -370,8 +536,7 @@ def ekle_iptal(_):
 
 def sil(govde):
     no = no_al(govde)
-    _, cikti, _ = cswap('list', '--json')
-    hesap = next((a for a in json.loads(cikti)['accounts'] if a['number'] == no), None)
+    hesap = next((a for a in cswap_liste(taze=True)['accounts'] if a['number'] == no), None)
     if not hesap:
         raise ValueError('Bu numarada hesap yok.')
     if hesap.get('active'):
@@ -388,8 +553,16 @@ def sil(govde):
     return '%s silindi. Geri eklemek için Hesap ekle\'den yeniden giriş gerekir.' % ad(hesap['email'])
 
 
+def kapandi(_):
+    # Pencere kapanıyor: başka pencere yoklamazsa sunucu KAPANDI_BEKLE_SN sonra kapanır.
+    # Yenilenen sayfa hemen yokladığı için yenilemede kapanmaz.
+    global son_istek
+    son_istek = time.time() - BOSTA_KAPAN_SN + KAPANDI_BEKLE_SN
+    return 'Tamam.'
+
+
 ISLEMLER = {'gec': gec, 'en-iyi': en_iyi, 'durdur': durdur, 'ac': ac, 'esik': esik_kaydet, 'ekle': ekle,
-            'ekle-iptal': ekle_iptal, 'sil': sil}
+            'ekle-iptal': ekle_iptal, 'sil': sil, 'kapandi': kapandi}
 
 
 class Isleyici(BaseHTTPRequestHandler):
@@ -398,12 +571,15 @@ class Isleyici(BaseHTTPRequestHandler):
 
     def yanit(self, kod, govde, tur='application/json; charset=utf-8'):
         veri = govde if isinstance(govde, bytes) else json.dumps(govde, ensure_ascii=False).encode('utf-8')
-        self.send_response(kod)
-        self.send_header('Content-Type', tur)
-        self.send_header('Cache-Control', 'no-store')
-        self.send_header('Content-Length', str(len(veri)))
-        self.end_headers()
-        self.wfile.write(veri)
+        try:
+            self.send_response(kod)
+            self.send_header('Content-Type', tur)
+            self.send_header('Cache-Control', 'no-store')
+            self.send_header('Content-Length', str(len(veri)))
+            self.end_headers()
+            self.wfile.write(veri)
+        except OSError:
+            pass  # Pencere yanıtı beklemeden kapandı (04.11 01:11 WinError 10053); hata değil.
 
     def yetkili(self):
         # Host denetimi DNS yeniden bağlama ile gelen isteği, anahtar başka sayfanın isteğini keser.
@@ -432,13 +608,15 @@ class Isleyici(BaseHTTPRequestHandler):
         self.yanit(404, {'hata': 'Yok.'})
 
     def do_POST(self):
-        global son_istek
+        global son_istek, islem_sayisi
         son_istek = time.time()
         islem = ISLEMLER.get(urlparse(self.path).path.removeprefix('/api/'))
         if not islem:
             return self.yanit(404, {'hata': 'Yok.'})
         if not self.yetkili():
             return self.yanit(403, {'hata': 'Yetkisiz istek.'})
+        with kilit:
+            islem_sayisi += 1
         try:
             uzunluk = int(self.headers.get('Content-Length') or 0)
             govde = json.loads(self.rfile.read(uzunluk) or b'{}') if uzunluk else {}
@@ -448,6 +626,11 @@ class Isleyici(BaseHTTPRequestHandler):
         except Exception as e:
             log('%s hatasi: %s' % (self.path, traceback.format_exc()))
             return self.yanit(500, {'hata': str(e)})
+        finally:
+            if islem is not kapandi:
+                liste_bayat()  # geçiş/durdurma/silme listeyi değiştirdi; sonraki yoklama tazesini alsın
+            with kilit:
+                islem_sayisi -= 1
 
 
 def pencere_ac(port, anahtar):
@@ -460,9 +643,92 @@ def pencere_ac(port, anahtar):
         webbrowser.open(adres)
 
 
+def kod_zamani():
+    try:
+        return os.path.getmtime(KAYNAK)
+    except OSError:
+        return None
+
+
+calisan_kod = kod_zamani()
+
+
+def kod_degisti():
+    """Bu dosya değişti, 20 sn'dir dokunulmuyor (düzenleme bitti) ve derleniyor mu?"""
+    zaman = kod_zamani()
+    if zaman is None or zaman == calisan_kod or time.time() - zaman < 20:
+        return False
+    try:
+        with open(KAYNAK, 'rb') as f:
+            compile(f.read(), KAYNAK, 'exec')
+        return True
+    except (OSError, SyntaxError, ValueError):
+        return False
+
+
+def sunucu_kur(port):
+    # Devirde eski süreç portu az önce bıraktı; bağlanamazsak yeni portla yeni pencere açılır.
+    for _ in range(20 if port else 1):
+        try:
+            return ThreadingHTTPServer(('127.0.0.1', port), Isleyici)
+        except OSError:
+            time.sleep(0.5)
+    return ThreadingHTTPServer(('127.0.0.1', 0), Isleyici)
+
+
+def calis(sunucu):
+    """Sunucuyu kapanana kadar çalıştırır: 'kapan' (pencere yok) ya da 'devret' (kod değişti)."""
+    sonuc = ['kapan']
+
+    def bekci():
+        while True:
+            time.sleep(15)
+            with kilit:
+                mesgul = ekleme.get('durum') == 'suruyor' or islem_sayisi > 0
+            if mesgul:
+                continue
+            if time.time() - son_istek > BOSTA_KAPAN_SN:
+                break
+            if kod_degisti():
+                sonuc[0] = 'devret'
+                break
+        sunucu.shutdown()
+
+    threading.Thread(target=bekci, daemon=True).start()
+    sunucu.serve_forever()
+    return sonuc[0]
+
+
+def devret(port):
+    """Yeni kodu aynı port ve anahtarla başlatır; ayağa kalktıysa True."""
+    try:
+        yeni = subprocess.Popen([sys.executable, KAYNAK], cwd=KLASOR,
+                                env=dict(os.environ, ARAYUZ_DEVIR='%d %s' % (port, ANAHTAR)))
+    except OSError:
+        log('devir baslatilamadi: ' + traceback.format_exc())
+        return False
+    son = time.time() + 30
+    while time.time() < son and yeni.poll() is None:
+        try:
+            with open(ACIK_DOSYASI, encoding='utf-8') as f:
+                if json.load(f).get('pid') == yeni.pid:
+                    log('yeni kod devraldi (pid %d)' % yeni.pid)
+                    return True
+        except (OSError, ValueError):
+            pass
+        time.sleep(0.5)
+    if yeni.poll() is None:
+        agaci_kapat(yeni.pid)
+    log('yeni kod ayaga kalkmadi (kod %s), eski kodla suruyor' % yeni.poll())
+    return False
+
+
 def main():
-    tek = k32.CreateMutexW(None, False, 'Local\\claude-account-switcher-ui')
-    if ctypes.get_last_error() == 183:
+    global calisan_kod
+    tek = k32.CreateMutexW(None, False, MUTEX)
+    if ctypes.get_last_error() == ERROR_ALREADY_EXISTS:
+        if DEVIR:
+            return  # Arada başka bir kopya kalkmış; eski süreç bunu görüp kendisi sürer.
         # Zaten açık: yeni sunucu kurmadan aynı sunucuya bir pencere daha aç.
         try:
             with open(ACIK_DOSYASI, encoding='utf-8') as f:
@@ -471,30 +737,29 @@ def main():
         except Exception:
             log('acik pencere bulunamadi: ' + traceback.format_exc())
         return
-    sunucu = ThreadingHTTPServer(('127.0.0.1', 0), Isleyici)
-    port = sunucu.server_address[1]
-    with open(ACIK_DOSYASI, 'w', encoding='utf-8') as f:
-        json.dump({'port': port, 'anahtar': ANAHTAR}, f)
-
-    def bekci():
-        while True:
-            time.sleep(15)
-            with kilit:
-                suruyor = ekleme.get('durum') == 'suruyor'
-            if not suruyor and time.time() - son_istek > BOSTA_KAPAN_SN:
-                sunucu.shutdown()
-                return
-
-    threading.Thread(target=bekci, daemon=True).start()
-    pencere_ac(port, ANAHTAR)
-    try:
-        sunucu.serve_forever()
-    finally:
-        try:
-            os.remove(ACIK_DOSYASI)
-        except OSError:
-            pass
-    return tek
+    port = int(DEVIR[0]) if DEVIR else 0
+    while True:
+        sunucu = sunucu_kur(port)
+        yeni_pencere = sunucu.server_address[1] != port
+        port = sunucu.server_address[1]
+        with open(ACIK_DOSYASI, 'w', encoding='utf-8') as f:
+            json.dump({'port': port, 'anahtar': ANAHTAR, 'pid': os.getpid()}, f)
+        if yeni_pencere:
+            pencere_ac(port, ANAHTAR)
+        sonuc = calis(sunucu)
+        sunucu.server_close()
+        if sonuc == 'kapan':
+            try:
+                os.remove(ACIK_DOSYASI)
+            except OSError:
+                pass
+            return
+        k32.CloseHandle(tek)
+        if devret(port):
+            return
+        # Yeni kod kalkmadı: aynı portta eski kodla sürülür, aynı sürüm için yeniden denenmez.
+        tek = k32.CreateMutexW(None, False, MUTEX)
+        calisan_kod = kod_zamani()
 
 
 if __name__ == '__main__':

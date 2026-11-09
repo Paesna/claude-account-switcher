@@ -9,6 +9,7 @@ $env:PYTHONUTF8 = '1'
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $cswap = Join-Path $env:USERPROFILE '.local\bin\cswap.exe'
 $log = Join-Path $PSScriptRoot 'cswap-auto.log'
+$tr = [Globalization.CultureInfo]::GetCultureInfo('tr-TR')
 
 function Kalan([datetime]$zaman, [datetime]$simdi) {
     $k = $zaman - $simdi
@@ -18,15 +19,33 @@ function Kalan([datetime]$zaman, [datetime]$simdi) {
 
 function Goster {
     $simdi = Get-Date
+    $ayarDosyasi = Join-Path $env:USERPROFILE '.claude-swap-backup\settings.json'
+    $esik = 90
+    $haftalikEsik = $null
+    if (Test-Path $ayarDosyasi) {
+        try {
+            $ayarJson = Get-Content $ayarDosyasi -Raw -Encoding UTF8 | ConvertFrom-Json
+            if ($ayarJson.autoswitch.threshold) { $esik = [int]$ayarJson.autoswitch.threshold }
+            if ($ayarJson.autoswitch.weeklyThreshold) { $haftalikEsik = [int]$ayarJson.autoswitch.weeklyThreshold }
+        } catch {}
+    }
+
     $veri = & $cswap list --json | ConvertFrom-Json
     $satirlar = foreach ($a in $veri.accounts) {
         $b = $a.usage.fiveHour
-        $yuzde = if ($b) { [int]$b.pct } else { $null }
+        $yuzde = if ($b -and $null -ne $b.pct) { [int]$b.pct } else { $null }
         $sif = if ($b -and $b.resetsAt) { ([datetimeoffset]::Parse($b.resetsAt)).LocalDateTime } else { $null }
         $h = $a.usage.sevenDay
+        # Haftalık pencere sıfırlandıysa depodaki eski yüzde geçersiz.
+        $hYuzde = if ($h -and $null -ne $h.pct) { [int]$h.pct } else { $null }
+        # 14:59:59.9 gibi geliyor; 30 sn eklenip dakikaya kesilince 15:00 görünür.
+        $hSif = if ($h -and $h.resetsAt) { ([datetimeoffset]::Parse($h.resetsAt)).LocalDateTime.AddSeconds(30) } else { $null }
+        if ($hSif -and $hSif -le $simdi) { $hYuzde = 0; $hSif = $null }
+        $saatlikDolu = ($null -ne $yuzde -and $yuzde -ge $esik)
+        $haftalikDolu = ($null -ne $haftalikEsik -and $null -ne $hYuzde -and $hYuzde -ge $haftalikEsik)
         $durum = if ($a.active) { 'AKTİF' }
                  elseif ($a.usageStatus -ne 'ok') { $a.usageStatus }
-                 elseif ($null -ne $yuzde -and $yuzde -ge 90) { 'dolu' }
+                 elseif ($saatlikDolu -or $haftalikDolu) { 'dolu' }
                  else { 'hazır' }
         [pscustomobject]@{
             No         = $a.number
@@ -34,14 +53,17 @@ function Goster {
             '5 saat'   = if ($null -ne $yuzde) { "%$yuzde" } else { '?' }
             Sifirlanma = if ($sif) { $sif.ToString('HH:mm') } else { '-' }
             Kalan      = if ($sif) { Kalan $sif $simdi } else { 'başlamadı' }
-            Haftalik   = if ($h) { "%$([int]$h.pct)" } else { '' }
+            Haftalik   = if ($null -ne $hYuzde) { "%$hYuzde" } else { '' }
+            'Hafta yenilenir' = if ($hSif) { $hSif.ToString('ddd dd.MM HH:mm', $tr) } else { '' }
             Durum      = $durum
             Sira       = if ($sif) { $sif } else { [datetime]::MaxValue }
         }
     }
 
-    "Claude hesapları  ·  $($simdi.ToString('dd.MM HH:mm'))  ·  eşikte (%90) en çok kotası kalana geçer"
-    ($satirlar | Sort-Object Sira, No | Format-Table No, Hesap, '5 saat', Sifirlanma, Kalan, Haftalik, Durum -AutoSize | Out-String -Width 200).TrimEnd()
+    $esikBilgisi = "5 saat %$esik"
+    if ($haftalikEsik) { $esikBilgisi += " · hafta %$haftalikEsik" }
+    "Claude hesapları  ·  $($simdi.ToString('dd.MM HH:mm'))  ·  eşikte ($esikBilgisi) en çok kotası kalana geçer"
+    ($satirlar | Sort-Object Sira, No | Format-Table No, Hesap, '5 saat', Sifirlanma, Kalan, Haftalik, 'Hafta yenilenir', Durum -AutoSize | Out-String -Width 200).TrimEnd()
     ''
 
     $hazir = @($satirlar | Where-Object { $_.Durum -in 'hazır', 'AKTİF' })

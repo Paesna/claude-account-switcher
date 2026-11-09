@@ -40,6 +40,21 @@ h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: v
 .esik label { color: var(--soluk); font-size: 13px; }
 .esik input { width: 56px; border: 1px solid var(--cizgi); border-radius: 7px; padding: 6px 8px; font: inherit;
   background: var(--yuzey-2); color: var(--yazi); text-align: right; }
+.esik .esik-ayrac { color: var(--soluk); font-weight: 600; opacity: .4; margin: 0 1px; }
+.haftalik-deger { font-variant-numeric: tabular-nums; }
+.haftalik-deger.dolu { color: var(--kirmizi); font-weight: 600; }
+.haftalik-deger.yakin { color: var(--sari); font-weight: 600; }
+.haftalik small { display: block; color: var(--soluk); font-size: 12px; white-space: nowrap; }
+ol.yenilenme { list-style: none; margin: 0; padding: 0; }
+ol.yenilenme li { display: grid; grid-template-columns: 104px 1fr auto; gap: 8px; align-items: baseline;
+  padding: 6px 0; border-bottom: 1px dashed var(--cizgi); font-size: 13px; }
+ol.yenilenme li:last-child { border-bottom: 0; }
+ol.yenilenme time { color: var(--soluk); font-variant-numeric: tabular-nums; }
+ol.yenilenme time b { color: var(--yazi); font-weight: 600; }
+ol.yenilenme .kalan { color: var(--soluk); font-size: 12px; white-space: nowrap; }
+ol.yenilenme .y { font-variant-numeric: tabular-nums; }
+ol.yenilenme li.dolu .y { color: var(--kirmizi); font-weight: 600; }
+ol.yenilenme li.aktif > span:first-of-type { font-weight: 600; color: var(--vurgu); }
 button { font: inherit; border: 1px solid var(--cizgi); background: var(--yuzey); color: var(--yazi);
   border-radius: 8px; padding: 7px 12px; cursor: pointer; white-space: nowrap; }
 button:hover:not(:disabled) { border-color: var(--vurgu); color: var(--vurgu); }
@@ -117,8 +132,11 @@ footer { color: var(--soluk); font-size: 12px; margin-top: 16px; }
     </div>
     <div class="araclar">
       <form id="esikForm" class="esik">
-        <label for="esik">Geçiş eşiği %</label>
-        <input id="esik" type="number" min="50" max="99" step="1" required>
+        <label for="esik" title="5 saatlik pencere kullanım eşiği">5 saat %</label>
+        <input id="esik" type="number" min="50" max="99" step="1" required title="5 saatlik kota bu yüzdeye gelince en boş hesaba geçilir">
+        <span class="esik-ayrac">·</span>
+        <label for="haftalikEsik" title="Haftalık kullanım eşiği (isteğe bağlı, boş bırakılırsa haftalık sınır aranmaz)">Haftalık %</label>
+        <input id="haftalikEsik" type="number" min="50" max="99" step="1" placeholder="—" title="Haftalık kota bu yüzdeye gelince en boş hesaba geçilir (boş bırakılabilir)">
         <button type="submit" class="ana kucuk">Kaydet</button>
       </form>
       <button id="ekleGit">+ Hesap ekle</button>
@@ -139,6 +157,11 @@ footer { color: var(--soluk); font-size: 12px; margin-top: 16px; }
     </section>
 
     <aside>
+      <section class="panel ic" id="yenilenmePanel" hidden>
+        <h2>Haftalık yenilenme</h2>
+        <ol id="yenilenme" class="yenilenme"></ol>
+        <p class="ipucu">En yakın yenilenen üstte. Kırmızı: haftalık eşiğin üstünde, o saate kadar geçişte kullanılmaz.</p>
+      </section>
       <section class="panel ic">
         <h2>Son geçişler</h2>
         <ol id="gecisler" class="gecisler"></ol>
@@ -185,15 +208,40 @@ function bildir(metin, iyi) {
   if (iyi) bildir.zaman = setTimeout(() => { k.hidden = true; }, 8000);
 }
 
+// Sıfırlanma zamanları 14:59:59.9 gibi geliyor; kesilince 14:59 görünmesin, dakikaya yuvarlanır.
+function dakikaya(iso) {
+  return new Date(Math.round(new Date(iso) / 60000) * 60000);
+}
+
 function saat(iso) {
-  return new Date(iso).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+  return dakikaya(iso).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+}
+
+// "bugün 15:00", "yarın 03:00", "Çar 12.11 22:00"
+function gunSaat(iso) {
+  const z = dakikaya(iso);
+  const gun = d => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const fark = Math.round((gun(z) - gun(new Date())) / 86400000);
+  const g = fark === 0 ? 'bugün' : fark === 1 ? 'yarın'
+    : z.toLocaleDateString('tr-TR', { weekday: 'short' }) + ' ' + z.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit' });
+  return g + ' ' + saat(iso);
 }
 
 function kalan(iso) {
   const dk = Math.round((new Date(iso) - Date.now()) / 60000);
   if (dk <= 0) return 'şimdi';
   const sa = Math.floor(dk / 60);
+  if (sa >= 24) return Math.floor(sa / 24) + ' gün ' + (sa % 24) + ' sa sonra';
   return (sa ? sa + ' sa ' : '') + (dk % 60) + ' dk sonra';
+}
+
+// Dar listede: "45 dk", "5 sa", "3 gün"
+function kisaKalan(iso) {
+  const dk = Math.round((new Date(iso) - Date.now()) / 60000);
+  if (dk <= 0) return 'şimdi';
+  if (dk < 60) return dk + ' dk';
+  if (dk < 1440) return Math.floor(dk / 60) + ' sa';
+  return Math.floor(dk / 1440) + ' gün';
 }
 
 function el(etiket, ozellik = {}, ...cocuklar) {
@@ -215,29 +263,57 @@ function kart(etiket, deger, alt) {
 
 function ciz() {
   const v = veri;
-  const esikKutusu = document.getElementById('esik');
-  if (document.activeElement !== esikKutusu) esikKutusu.value = v.esik;
+  // Yazılmış ama kaydedilmemiş eşik yoklamada ezilmesin: önceden yalnız odaktaki kutu
+  // korunuyordu; haftalığı yazıp 5 saatlik kutuya geçince haftalık eski değere dönüyor,
+  // Kaydet eski değeri kaydediyordu.
+  if (!esikDegisti) {
+    document.getElementById('esik').value = v.esik;
+    document.getElementById('haftalikEsik').value = v.haftalik_esik != null ? v.haftalik_esik : '';
+  }
 
   const gorev = document.getElementById('gorev');
-  gorev.textContent = v.gorev ? 'Otomatik geçiş çalışıyor · %' + v.esik + "'de en boş hesaba geçer" : 'Otomatik geçiş çalışmıyor';
+  if (v.gorev) {
+    gorev.textContent = 'Otomatik geçiş çalışıyor · eşikler: 5 saat %' + v.esik +
+      (v.haftalik_esik != null ? ' · haftalık %' + v.haftalik_esik : ' · haftalık: 5 saatlikle aynı');
+  } else {
+    gorev.textContent = 'Otomatik geçiş çalışmıyor';
+  }
   gorev.classList.toggle('kapali', !v.gorev);
 
   const aktif = v.hesaplar.find(h => h.aktif);
   const hazir = v.hesaplar.filter(h => h.durum === 'hazir');
-  const dolu = v.hesaplar.filter(h => h.durum === 'dolu').sort((a, b) => (a.sifirlanma || '').localeCompare(b.sifirlanma || ''));
+  // Dolu hesap haftalıkta doluysa 5 saatlik sıfırlanınca değil haftalık yenilenince açılır (acilma).
+  const acilma = h => h.acilma || h.sifirlanma || '';
+  const dolu = v.hesaplar.filter(h => h.durum === 'dolu' && acilma(h)).sort((a, b) => acilma(a).localeCompare(acilma(b)));
+  const doluSayisi = v.hesaplar.filter(h => h.durum === 'dolu').length;
+  const haftalikDolu = v.hesaplar.filter(h => h.haftalik_dolu && h.haftalik_sifirlanma)
+    .sort((a, b) => a.haftalik_sifirlanma.localeCompare(b.haftalik_sifirlanma));
   const durdurulan = v.hesaplar.filter(h => h.durduruldu);
   const ozet = document.getElementById('ozet');
   ozet.replaceChildren(
-    kart('Aktif hesap', aktif ? aktif.ad : '—', aktif && aktif.yuzde != null ? '%' + aktif.yuzde + ' kullanıldı' : ''),
+    kart('Aktif hesap', aktif ? aktif.ad : '—', aktif && aktif.yuzde != null
+      ? '5 saat %' + aktif.yuzde + (aktif.haftalik != null ? ' · hafta %' + aktif.haftalik : '') : ''),
     kart('Hazır', hazir.length + ' hesap', 'eşiğin altında'),
-    kart('Dolu', dolu.length + ' hesap', dolu.length ? 'ilk açılan: ' + dolu[0].ad + ' ' + saat(dolu[0].sifirlanma) : ''),
+    kart('Dolu', doluSayisi + ' hesap', dolu.length ? 'ilk açılan: ' + dolu[0].ad + ' ' + gunSaat(acilma(dolu[0])) : ''),
+    kart('Haftalıkta dolu', haftalikDolu.length + ' hesap', haftalikDolu.length
+      ? 'ilk yenilenen: ' + haftalikDolu[0].ad + ' ' + gunSaat(haftalikDolu[0].haftalik_sifirlanma) : 'haftalık eşiğin altında'),
     kart('Durdurulan', durdurulan.length + ' hesap', durdurulan.map(h => h.ad).join(', ')),
   );
 
+  // Haftalık yenilenme takibi: her hesabın haftalığı hangi gün saat kaçta sıfırlanıyor.
+  const yenilenme = v.hesaplar.filter(h => h.haftalik_sifirlanma)
+    .sort((a, b) => a.haftalik_sifirlanma.localeCompare(b.haftalik_sifirlanma));
+  document.getElementById('yenilenmePanel').hidden = !yenilenme.length;
+  document.getElementById('yenilenme').replaceChildren(...yenilenme.map(h =>
+    el('li', { class: (h.haftalik_dolu ? 'dolu' : '') + (h.aktif ? ' aktif' : ''), title: kalan(h.haftalik_sifirlanma) },
+      el('time', {}, gunSaat(h.haftalik_sifirlanma)),
+      el('span', {}, h.ad + ' ', el('span', { class: 'y' }, '%' + h.haftalik)),
+      el('span', { class: 'kalan' }, kisaKalan(h.haftalik_sifirlanma)))));
+
   // Aynı anda tek giriş yapılabilir: ikincisi ilkinin giriş dosyasının üstüne yazardı.
   const eklemeSuruyor = (v.ekleme || {}).durum === 'suruyor';
-  // Haftalık sınırı Anthropic çoğu hesapta göndermiyor; hiçbirinde yoksa sütun boşuna yer kaplamasın.
-  const haftalikVar = v.hesaplar.some(h => h.haftalik != null);
+  // Haftalık sınırı Anthropic çoğu hesapta göndermiyor; hiçbirinde yoksa ve eşik girilmediyse sütun boşuna yer kaplamasın.
+  const haftalikVar = v.hesaplar.some(h => h.haftalik != null) || Boolean(v.haftalik_esik);
   document.querySelector('th.haftalik').hidden = !haftalikVar;
   const govde = document.getElementById('hesaplar');
   govde.replaceChildren(...v.hesaplar.map(h => {
@@ -250,11 +326,26 @@ function ciz() {
     const sifir = h.sifirlanma
       ? el('td', { class: 'sifir' }, saat(h.sifirlanma), el('small', {}, kalan(h.sifirlanma)))
       : el('td', { class: 'sifir' }, '—', el('small', {}, h.yuzde === 0 ? 'kullanılmadı' : ''));
+    let haftalikHucre = null;
+    if (haftalikVar) {
+      if (h.haftalik == null) {
+        haftalikHucre = el('td', { class: 'haftalik' }, '—');
+      } else {
+        // Haftalık eşik boşsa cswap haftalıkta da 5 saatlik eşiği kullanıyor.
+        const hSinir = v.haftalik_esik != null ? v.haftalik_esik : v.esik;
+        const hSinif = h.haftalik >= hSinir ? 'dolu' : (h.haftalik >= hSinir - 10 ? 'yakin' : '');
+        haftalikHucre = el('td', { class: 'haftalik' },
+          el('span', { class: 'haftalik-deger ' + hSinif }, '%' + h.haftalik),
+          h.haftalik_sifirlanma
+            ? el('small', { title: 'Haftalık yenilenme: ' + kalan(h.haftalik_sifirlanma) }, gunSaat(h.haftalik_sifirlanma))
+            : null);
+      }
+    }
     return el('tr', { class: h.durum },
       el('td', { class: 'no' }, String(h.no)),
       el('td', { class: 'hesap' }, el('b', {}, h.ad), el('small', {}, h.kurum)),
       kullanim, sifir,
-      haftalikVar ? el('td', { class: 'haftalik' }, h.haftalik == null ? '—' : '%' + h.haftalik) : null,
+      haftalikHucre,
       el('td', {}, el('span', { class: 'rozet ' + h.durum }, DURUM_ADI[h.durum])),
       el('td', { class: 'islem' },
         // Okunamayan hesabın girişi çoğunlukla ölmüştür; tek tıkla yeniden giriş.
@@ -303,28 +394,48 @@ function ciz() {
   document.querySelector('#ekleForm button').disabled = eklemeSuruyor || mesgul;
 
   document.getElementById('alt').textContent =
-    'Son yenileme ' + saat(v.saat) + ' · 30 saniyede bir kendiliğinden yenilenir · kullanım bilgisi cswap\'ın deposundan okunur, Anthropic\'e fazladan istek gitmez';
+    'Son yenileme ' + saat(v.saat) + ' · 30 saniyede bir kendiliğinden yenilenir · kullanım bilgisi cswap\'ın deposundan okunur, Anthropic\'e fazladan istek gitmez' +
+    (esikDegisti ? ' · eşik değişikliği kaydedilmedi (Kaydet ya da Esc)' : '');
 }
+
+let esikDegisti = false;
+let baglantiHatasi = false;
+let sayfaSurumu = null;
 
 async function yukle(sessiz) {
   try {
     veri = await api('/api/durum');
+    // Sunucu kod değişince kendini yeniden başlatırken birkaç saniye yanıt vermez;
+    // geri gelince hata yazısı kendiliğinden kalksın.
+    if (baglantiHatasi) {
+      baglantiHatasi = false;
+      document.getElementById('bildirim').hidden = true;
+    }
+    // arayuz.html değiştiyse yeni sayfayı al (yarım iş ya da kaydedilmemiş eşik varken bekle).
+    if (sayfaSurumu == null) sayfaSurumu = veri.sayfa;
+    else if (veri.sayfa != null && veri.sayfa !== sayfaSurumu && !mesgul && !esikDegisti) {
+      location.reload();
+      return;
+    }
     ciz();
   } catch (e) {
-    // fetch ağ hatasında TypeError atar: sunucu kapanmış demektir.
+    baglantiHatasi = true;
+    // fetch ağ hatasında TypeError atar: sunucu kapanmış ya da yeniden başlıyor demektir.
     bildir(e instanceof TypeError
-      ? 'Bağlantı koptu. Pencereyi kapatıp masaüstündeki kısayoldan yeniden aç.'
+      ? 'Bağlantı yok; yeniden deneniyor. Düzelmezse pencereyi kapatıp masaüstündeki kısayoldan aç.'
       : 'Durum okunamadı: ' + e.message, false);
   }
 }
 
 async function islem(ad, govde, beklerken) {
-  if (mesgul) return;
+  if (mesgul) return false;
   mesgul = true;
   if (veri) ciz();
   bildir(beklerken, true);
+  let tamam = false;
   try {
     const j = await api('/api/' + ad, govde);
+    tamam = true;
     bildir(j.mesaj, true);
   } catch (e) {
     bildir(e.message, false);
@@ -332,12 +443,33 @@ async function islem(ad, govde, beklerken) {
     mesgul = false;
     await yukle(false);
   }
+  return tamam;
 }
 
-document.getElementById('esikForm').addEventListener('submit', ev => {
+for (const id of ['esik', 'haftalikEsik']) {
+  const kutu = document.getElementById(id);
+  kutu.addEventListener('input', () => { esikDegisti = true; });
+  // Esc: yazılanı bırak, kayıtlı eşiklere dön.
+  kutu.addEventListener('keydown', ev => {
+    if (ev.key === 'Escape' && esikDegisti) { esikDegisti = false; if (veri) ciz(); kutu.blur(); }
+  });
+}
+document.getElementById('esikForm').addEventListener('submit', async ev => {
   ev.preventDefault();
   const kutu = document.getElementById('esik');
-  islem('esik', { yuzde: Number(kutu.value) }, 'Eşik kaydediliyor…').then(() => kutu.blur());
+  const hKutu = document.getElementById('haftalikEsik');
+  const hVal = hKutu.value.trim();
+  const govde = {
+    yuzde: Number(kutu.value),
+    haftalik_yuzde: hVal ? Number(hVal) : null,
+  };
+  if (await islem('esik', govde, 'Eşikler kaydediliyor…')) {
+    // Kutular artık sunucudan gelen kayıtlı değeri göstersin; kaydedilmediyse yazılan kalır.
+    esikDegisti = false;
+    if (veri) ciz();
+    kutu.blur();
+    hKutu.blur();
+  }
 });
 document.getElementById('ekleGit').addEventListener('click', () => {
   const kutu = document.getElementById('eposta');
@@ -353,6 +485,7 @@ document.getElementById('ekleForm').addEventListener('submit', ev => {
 });
 
 // Giriş sürerken adımı 5 saniyede bir göster; yoksa 30 saniyede bir yenilemek yeter.
+// Simge durumundaki pencerede Chrome bunu dakikada bire indirir; sunucu 12 saat bekler.
 let sonYukleme = 0;
 yukle(false).then(() => { sonYukleme = Date.now(); });
 setInterval(() => {
@@ -361,6 +494,17 @@ setInterval(() => {
   sonYukleme = Date.now();
   yukle(true);
 }, 5000);
+// Pencereye dönülünce (sabah) dakikalık yoklamayı beklemeden tazele.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && !mesgul) {
+    sonYukleme = Date.now();
+    yukle(true);
+  }
+});
+// Pencere kapanıyor: sunucu 12 saat beklemesin, başka pencere yoksa 90 sn sonra kapansın.
+addEventListener('pagehide', () => {
+  fetch('/api/kapandi', { method: 'POST', keepalive: true, headers: { 'X-Anahtar': ANAHTAR } }).catch(() => {});
+});
 </script>
 </body>
 </html>

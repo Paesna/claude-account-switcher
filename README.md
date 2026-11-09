@@ -19,8 +19,8 @@ Açık Claude Code oturumları yeniden başlatmadan, bir sonraki mesajda yeni he
 
 | Parça | Ne yapar |
 |---|---|
-| **Arka plan görevi** (`cswap-auto.pyw`) | `cswap auto`'yu penceresiz ve tek kopya çalıştırır, durursa yeniden başlatır. Görev Zamanlayıcı her oturum açılışında başlatır. Elle `/login` ile listede olmayan bir hesaba girerseniz onu kendiliğinden listeye ekler. |
-| **Pencere** (`arayuz.pyw` + `arayuz.html`) | Masaüstündeki **Claude hesapları** kısayolu. Her hesabın 5 saatlik kullanımı, sıfırlanma saati ve durumu (Aktif / Hazır / Dolu / Durduruldu / Okunamıyor). Satırda **Geç**, **Durdur / Aç**, **Sil**, okunamayanda **Yeniden giriş**. Üstte **eşik + Kaydet**, **En boş hesaba geç**, **+ Hesap ekle**. Son 15 geçiş. |
+| **Arka plan görevi** (`cswap-auto.pyw`) | `cswap auto`'yu penceresiz ve tek kopya çalıştırır; durursa ya da 15 dakika tek satır yazmazsa (takılma) yeniden başlatır, hiçbir hatada kendisi kapanmaz. Görev Zamanlayıcı her oturum açılışında ve 5 dakikada bir yoklar: bir sebeple düşerse en geç 5 dakikada yeniden kalkar. Elle `/login` ile listede olmayan bir hesaba girerseniz onu kendiliğinden listeye ekler. |
+| **Pencere** (`arayuz.pyw` + `arayuz.html`) | Masaüstündeki **Claude hesapları** kısayolu. Her hesabın 5 saatlik ve haftalık kullanımı, sıfırlanma saati ve durumu (Aktif / Hazır / Dolu / Durduruldu / Okunamıyor). Satırda **Geç**, **Durdur / Aç**, **Sil**, okunamayanda **Yeniden giriş**. Üstte **5 saatlik ve haftalık eşikler + Kaydet**, **En boş hesaba geç**, **+ Hesap ekle**. Son 15 geçiş. Gece boyu açık kalabilir; kod güncellenince pencere kopmadan yeni koda geçer. |
 | **Hesap ekleme** (`hesap-ekle.ps1`) | claude.ai çıkış sekmesini ve bir kutu açar; tarayıcıda o hesapla girip **Tamam** dersiniz, gerisi kendiliğinden. Giriş beklenen hesapla bitmezse kaydetmez, yeniden sorar. |
 | **Hızlı tetik** (isteğe bağlı, `durum-satiri.py` + `esikte-gec.py`) | Claude Code'un durum satırı her yanıtta güncel yüzdeyi verir; eşik görülür görülmez geçer, dakikalık kontrolü beklemez. |
 | **Terminal tablosu** (`hesaplar.ps1`) | Pencere yerine komut satırında tek bakış. `-Izle` ile dakikada bir yenilenir. |
@@ -48,9 +48,10 @@ Açık Claude Code oturumları yeniden başlatmadan, bir sonraki mesajda yeni he
    ```
    `görev: Running` ve masaüstünde **Claude hesapları** kısayolu görünmeli.
 4. Kısayolu açın, **+ Hesap ekle** ile öteki hesaplarınızı tek tek ekleyin.
-5. Eşiği pencereden kaydedin (ya da `cswap config set autoswitch.threshold 90`).
+5. Eşikleri pencereden kaydedin (5 saatlik ve haftalık eşikler ayrı tutulabilir; örn. 5 saatlik %80, haftalık %90 veya `cswap config set autoswitch.threshold 80` ve `cswap config set autoswitch.weeklyThreshold 90`).
 
-Klasörü sonradan taşırsanız `kur.ps1`'i yeniden çalıştırın.
+Klasörü sonradan taşırsanız `kur.ps1`'i yeniden çalıştırın (görevin yolu ve varsa
+`~/.claude/kota/ayar.json`'daki hızlı tetik yolu birlikte düzelir).
 
 ### Hızlı tetik (isteğe bağlı)
 
@@ -63,7 +64,7 @@ Klasörü sonradan taşırsanız `kur.ps1`'i yeniden çalıştırın.
 }
 ```
 
-Kendi durum satırı betiğiniz varsa ona eklemeniz yeter: 5 saatlik yüzde eşiğe gelince
+Kendi durum satırı betiğiniz varsa ona eklemeniz yeter: 5 saatlik veya haftalık kullanım kendi eşiğine gelince
 `esikte-gec.py`'yi (pencere başına bir kez) çalıştırsın.
 
 ## Bilinmesi gerekenler
@@ -82,6 +83,8 @@ Kendi durum satırı betiğiniz varsa ona eklemeniz yeter: 5 saatlik yüzde eşi
 - Giriş tarayıcıda 4 dakikada tamamlanmazsa kapanır ve yeniden sorulur; süren girişi
   pencereden **İptal** edebilirsiniz.
 - Bütün hesaplar eşiğin üstündeyse sistem ilk sıfırlanan hesabı bekler.
+- **Gece açık bırakırken** bilgisayar uykuya geçmesin: uykuda Claude Code oturumları da,
+  geçiş de durur. Dizüstünde prize takılı bırakın (pilde uyku süresi genelde kısadır).
 
 ## Güvenlik
 

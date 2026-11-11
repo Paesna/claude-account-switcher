@@ -27,7 +27,7 @@ body {
   margin: 0; background: var(--zemin); color: var(--yazi);
   font: 14px/1.45 "Segoe UI", system-ui, sans-serif;
 }
-.kabuk { max-width: 1200px; margin: 0 auto; padding: 20px 24px 32px; }
+.kabuk { max-width: 1340px; margin: 0 auto; padding: 20px 24px 32px; }
 header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; }
 h1 { font-size: 22px; margin: 0; letter-spacing: -.01em; }
 h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--soluk); margin: 0 0 10px; }
@@ -45,6 +45,26 @@ h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: v
 .haftalik-deger.dolu { color: var(--kirmizi); font-weight: 600; }
 .haftalik-deger.yakin { color: var(--sari); font-weight: 600; }
 .haftalik small { display: block; color: var(--soluk); font-size: 12px; white-space: nowrap; }
+td.haftalik { white-space: nowrap; }
+.sifirlama { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--cizgi); display: grid; gap: 6px; justify-items: start; }
+.sifirlama h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--soluk); margin: 0; }
+.sifirlama .ipucu { margin: 0; }
+.sifirlama .sira { margin: 0; font-weight: 600; color: var(--sari); }
+.pencere { margin-top: 10px; display: grid; gap: 6px; justify-items: start; }
+.pencere p { margin: 0; }
+.pencere .saatler { font-size: 13px; }
+.pencere .saatler b { font-variant-numeric: tabular-nums; }
+.pencere .sira { font-weight: 600; color: var(--sari); }
+.pencere .son { font-size: 13px; }
+.pencere .hatali { color: var(--kirmizi); font-size: 12px; }
+th button.sirala { font: inherit; color: inherit; background: none; border: 0; padding: 0; border-radius: 4px;
+  cursor: pointer; white-space: nowrap; text-align: left; }
+th button.sirala:hover { color: var(--vurgu); }
+th button.sirala:focus-visible { outline: 2px solid var(--vurgu); outline-offset: 2px; }
+th button.sirala::after { content: "↕"; margin-left: 4px; opacity: .35; }
+th.secili button.sirala { color: var(--vurgu); }
+th[aria-sort="ascending"] button.sirala::after { content: "▲"; opacity: 1; font-size: 9px; }
+th[aria-sort="descending"] button.sirala::after { content: "▼"; opacity: 1; font-size: 9px; }
 ol.yenilenme { list-style: none; margin: 0; padding: 0; }
 ol.yenilenme li { display: grid; grid-template-columns: 104px 1fr auto; gap: 8px; align-items: baseline;
   padding: 6px 0; border-bottom: 1px dashed var(--cizgi); font-size: 13px; }
@@ -75,24 +95,24 @@ button.tehlike:hover:not(:disabled) { border-color: var(--kirmizi); color: var(-
 .bildirim.kotu { background: var(--kirmizi-acik); color: var(--kirmizi); }
 
 .duzen { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; align-items: start; }
-@media (max-width: 1180px) { .duzen { grid-template-columns: 1fr; } }
+@media (max-width: 1320px) { .duzen { grid-template-columns: 1fr; } }
 .tablo-kap { overflow-x: auto; border-radius: 12px; }
 .panel { background: var(--yuzey); border: 1px solid var(--cizgi); border-radius: 12px; box-shadow: var(--golge); }
 .panel.ic { padding: 14px 16px; }
 .panel + .panel { margin-top: 16px; }
 
 table { width: 100%; border-collapse: collapse; }
-th { text-align: left; font-size: 12px; font-weight: 600; color: var(--soluk); padding: 10px 12px;
+th { text-align: left; font-size: 12px; font-weight: 600; color: var(--soluk); padding: 10px 8px;
   border-bottom: 1px solid var(--cizgi); background: var(--yuzey-2); }
 th:first-child { border-top-left-radius: 12px; } th:last-child { border-top-right-radius: 12px; }
-td { padding: 10px 12px; border-bottom: 1px solid var(--cizgi); vertical-align: middle; }
+td { padding: 10px 8px; border-bottom: 1px solid var(--cizgi); vertical-align: middle; }
 tr:last-child td { border-bottom: 0; }
 tr.aktif td { background: var(--vurgu-acik); }
 tr.durduruldu td:not(.islem) { opacity: .55; }
 .no { width: 34px; color: var(--soluk); font-variant-numeric: tabular-nums; }
 .hesap b { display: block; font-weight: 600; }
 .hesap small, .sifir small { display: block; color: var(--soluk); font-size: 12px; }
-.kullanim { min-width: 170px; }
+.kullanim { min-width: 110px; }
 .cubuk { height: 8px; border-radius: 99px; background: var(--gri-acik); overflow: hidden; }
 .cubuk span { display: block; height: 100%; border-radius: 99px; background: var(--yesil); width: var(--y); }
 .cubuk.yakin span { background: var(--sari); }
@@ -105,7 +125,7 @@ tr.durduruldu td:not(.islem) { opacity: .55; }
 .rozet.durduruldu { background: var(--gri-acik); color: var(--gri); }
 .rozet.okunamiyor { background: var(--sari-acik); color: var(--sari); }
 .islem { text-align: right; white-space: nowrap; }
-.islem button + button { margin-left: 6px; }
+.islem button + button { margin-left: 4px; }
 
 ol.gecisler { list-style: none; margin: 0; padding: 0; }
 ol.gecisler li { display: grid; grid-template-columns: 74px 1fr; gap: 8px; padding: 7px 0; border-bottom: 1px dashed var(--cizgi); font-size: 13px; }
@@ -151,7 +171,16 @@ footer { color: var(--soluk); font-size: 12px; margin-top: 16px; }
   <div class="duzen">
     <section class="panel tablo-kap">
       <table>
-        <thead><tr><th>No</th><th>Hesap</th><th>5 saatlik kullanım</th><th>Sıfırlanma</th><th class="haftalik">Haftalık</th><th>Durum</th><th></th></tr></thead>
+        <thead><tr>
+          <th data-alan="no"><button type="button" class="sirala">No</button></th>
+          <th data-alan="hesap"><button type="button" class="sirala">Hesap</button></th>
+          <th data-alan="kullanim"><button type="button" class="sirala">5 saatlik kullanım</button></th>
+          <th data-alan="sifir"><button type="button" class="sirala">Sıfırlanma</button></th>
+          <th data-alan="haftalik" class="haftalik"><button type="button" class="sirala">Haftalık</button></th>
+          <th data-alan="hyenilenme" class="haftalik"><button type="button" class="sirala">Haftalık yenilenme</button></th>
+          <th data-alan="durum"><button type="button" class="sirala">Durum</button></th>
+          <th></th>
+        </tr></thead>
         <tbody id="hesaplar"><tr><td colspan="7" class="bos">Yükleniyor…</td></tr></tbody>
       </table>
     </section>
@@ -161,6 +190,17 @@ footer { color: var(--soluk); font-size: 12px; margin-top: 16px; }
         <h2>Haftalık yenilenme</h2>
         <ol id="yenilenme" class="yenilenme"></ol>
         <p class="ipucu">En yakın yenilenen üstte. Kırmızı: haftalık eşiğin üstünde, o saate kadar geçişte kullanılmaz.</p>
+        <div id="sifirlamaKutu" class="sifirlama"></div>
+      </section>
+      <section class="panel ic">
+        <h2>5 saatlik pencereyi başlat</h2>
+        <form id="pencereForm" class="ekle">
+          <input id="pencereSaat" type="text" inputmode="numeric" autocomplete="off" placeholder="08:00, 13:00"
+            aria-label="Başlatma saatleri" title="Her gün bu saatlerde boştaki hesapların 5 saatlik penceresi başlar. Birden çoksa virgülle ayır; boş bırakıp Kaydet'e basarsan kapanır.">
+          <button type="submit" class="ana">Kaydet</button>
+        </form>
+        <div id="pencereKutu" class="pencere"></div>
+        <p class="ipucu">Seçtiğin saatte penceresi sürmeyen her hesaba Haiku ile tek kısa mesaj gider (~900 token, kotadan neredeyse bir şey yemez): 5 saatlik pencere o an başlar, 5 saat sonra sıfırlanır. Penceresi süren, haftalıkta dolu ve durdurulan hesaplar atlanır; aktif giriş ve açık oturumlar değişmez. Bilgisayar o saatte açık olmalı: 30 dakikadan geç uyanırsa o seferlik atlanır.</p>
       </section>
       <section class="panel ic">
         <h2>Son geçişler</h2>
@@ -256,6 +296,138 @@ function el(etiket, ozellik = {}, ...cocuklar) {
   return e;
 }
 
+// Tablo sıralaması: başlığa tıklayınca o sütuna göre artan, yeniden tıklayınca azalan.
+// "Durum" sunucunun sırası (aktif, hazır, dolu: en erken açılan önce). Seçim bu tarayıcıda hatırlanır.
+const ADLAR = new Intl.Collator('tr', { numeric: true, sensitivity: 'base' });  // tahaakgul2 < tahaakgul10
+const zaman = iso => (iso ? Date.parse(iso) : null);
+const SIRALAMA = {
+  no: h => h.no,
+  hesap: h => h.ad,
+  kullanim: h => h.yuzde,
+  sifir: h => zaman(h.sifirlanma),
+  haftalik: h => h.haftalik,
+  hyenilenme: h => zaman(h.haftalik_sifirlanma),
+};
+let siralama = { alan: 'durum', yon: 1 };
+try {
+  const kayitli = JSON.parse(localStorage.getItem('siralama') || 'null');
+  if (kayitli && (kayitli.alan === 'durum' || SIRALAMA[kayitli.alan]) && (kayitli.yon === 1 || kayitli.yon === -1)) siralama = kayitli;
+} catch { /* gizli pencere vb.: varsayılan sıra */ }
+
+function sirali(liste) {
+  const deger = SIRALAMA[siralama.alan];
+  if (!deger) return siralama.yon === 1 ? liste : [...liste].reverse();
+  return [...liste].sort((a, b) => {
+    const x = deger(a), y = deger(b);
+    const xBos = x == null || Number.isNaN(x), yBos = y == null || Number.isNaN(y);
+    if (xBos || yBos) return xBos === yBos ? a.no - b.no : (xBos ? 1 : -1);  // bilinmeyen hep sonda
+    const fark = typeof x === 'string' ? ADLAR.compare(x, y) : x - y;
+    return fark ? fark * siralama.yon : a.no - b.no;
+  });
+}
+
+function basliklariIsaretle() {
+  document.querySelectorAll('th[data-alan]').forEach(th => {
+    const secili = th.dataset.alan === siralama.alan;
+    th.setAttribute('aria-sort', secili ? (siralama.yon === 1 ? 'ascending' : 'descending') : 'none');
+    th.classList.toggle('secili', secili);
+  });
+}
+
+// Sıfırlama hakkı işe yarar mı (sunucudaki sifirlanabilir() ile aynı kural): yalnız 5 saatlikte
+// dolu hesap her zaman; haftalıkta dolu hesap yalnız haftalığı 1 günden uzaktaysa (5 saatlik
+// sıfırlama haftalık doluyken hesabı açmaz, yakında yenilenecek hesaba tam sıfırlama harcanmasın).
+function sifirlanabilir(h) {
+  if (!(h.aktif || h.durum === 'dolu')) return false;
+  if (h.haftalik_dolu) return Boolean(h.haftalik_sifirlanma) && Date.parse(h.haftalik_sifirlanma) - Date.now() > 864e5;
+  return Boolean(h.saatlik_dolu);
+}
+
+function sifirlaIpucu(h) {
+  return h.haftalik_dolu
+    ? 'Haftalıkta dolu (' + gunSaat(h.haftalik_sifirlanma) + ' yenilenir): claude.ai Kullanım sayfasında tam sıfırlamayı kullan'
+    : '5 saatlikte dolu' + (h.sifirlanma ? ' (' + saat(h.sifirlanma) + '\'de kendiliğinden açılır)' : '') +
+      ': claude.ai Kullanım sayfasında "Limit resets" altındaki "Reset for free"';
+}
+
+// Sıfırlama hakkı kutusu (Haftalık yenilenme panelinin altında).
+function sifirlamaCiz(s, mesgul) {
+  const kutu = document.getElementById('sifirlamaKutu');
+  const baslik = el('h3', {}, 'Sıfırlama hakkı');
+  if (s.durum === 'suruyor') {
+    kutu.replaceChildren(baslik,
+      el('p', { class: 'sira' }, 'Şu an: ' + (s.simdiki || '…') + ' (' + (s.sira_no || 0) + '/' + (s.hesaplar || []).length + ')'),
+      el('p', { class: 'ipucu' }, 'Açılan pencerede "Limit resets" altındaki "Reset for free"a bas, sonra pencereyi kapat; sıradaki kendiliğinden açılır.'),
+      el('button', { class: 'kucuk tehlike', disabled: mesgul,
+        onclick: () => islem('sifirla-iptal', {}, 'Sıra durduruluyor…') }, 'Sırayı durdur'));
+    return;
+  }
+  kutu.replaceChildren(...[baslik,
+    el('p', { class: 'ipucu' }, 'Anthropic\'in verdiği sıfırlama hakları claude.ai Kullanım sayfasında, "Limit resets" altındaki ' +
+      '"Reset for free" ile kullanılır. "Sıfırla ↗" dolu satırlarda (5 saatlikte ya da haftalıkta) çıkar, o hesabın ' +
+      'sayfasını kendi penceresinde açar; her hesapla ilk seferde bir kez girersin, sonra hep girili açılır.'),
+    el('p', { class: 'ipucu' }, 'Sayfada birden çok hak varsa: yalnız 5 saatlikte dolu hesapta 5 saatliği sıfırlayanı, ' +
+      'haftalıkta dolu hesapta tam sıfırlamayı kullan. Haftalığı 1 gün içinde zaten yenilenecek hesapta düğme çıkmaz.'),
+    el('button', { class: 'kucuk ana', disabled: mesgul,
+      onclick: () => {
+        if (confirm('Dolu hesapların claude.ai Kullanım sayfası sırayla açılsın mı?\n\n' +
+            'Her pencerede "Reset for free"a basıp pencereyi kapatırsın, sıradaki kendiliğinden açılır. ' +
+            'Haftalıkta dolu olup 24 saat içinde zaten yenilenecek hesaplar atlanır.'))
+          islem('sifirla-sira', {}, 'Sıra hazırlanıyor…');
+      } }, 'Dolu hesaplarda sırayla aç'),
+    el('p', { class: 'ipucu' }, 'En geç açılacak hesaptan başlar: sıfırlama en çok orada kazandırır.'),
+    s.durum === 'bitti' ? el('p', { class: 'ipucu' }, 'Son sıra bitti: ' + (s.hesaplar || []).join(', ')) : null,
+    s.durum === 'iptal' ? el('p', { class: 'ipucu' }, 'Son sıra durduruldu.') : null,
+  ].filter(Boolean));  // replaceChildren null'u "null" yazısı olarak basar
+}
+
+// 5 saatlik pencereyi başlatma kutusu: kayıtlı saatler, Şimdi başlat, süren ya da son başlatma.
+function pencereCiz(p, mesgul) {
+  if (!pencereDegisti) document.getElementById('pencereSaat').value = (p.saatler || []).join(', ');
+  document.querySelector('#pencereForm button').disabled = mesgul;
+  const son = p.son || {};
+  const satirlar = [
+    el('p', { class: 'saatler' }, ...((p.saatler || []).length
+      ? ['Her gün ', ...p.saatler.flatMap((s, i) => [i ? ' · ' : '', el('b', {}, s)])]
+      : ['Kayıtlı saat yok: yalnız elle başlatılır.'])),
+  ];
+  if (p.calisiyor) {
+    satirlar.push(el('p', { class: 'sira' }, son.simdiki
+      ? 'Başlatılıyor: ' + son.simdiki + ' (' + son.sira_no + '/' + son.toplam + ')'
+      : 'Başlatılıyor…'));
+  } else {
+    satirlar.push(el('button', { class: 'kucuk', disabled: mesgul,
+      onclick: () => {
+        if (confirm('Penceresi sürmeyen hesapların 5 saatlik penceresi şimdi başlasın mı?\n\n' +
+            'Her birine Haiku ile tek kısa mesaj gider; pencereleri şu andan 5 saat sonra sıfırlanır. ' +
+            'Penceresi süren, haftalıkta dolu ve durdurulan hesaplar atlanır.'))
+          islem('pencere-simdi', {}, 'Başlatma açılıyor…');
+      } }, 'Şimdi başlat'));
+  }
+  if (!p.calisiyor && son.durum) {
+    const ne = son.elle ? ' (elle)' : '';
+    const baslayan = son.baslayan || [], hatali = son.hatali || [], atlanan = son.atlanan || [];
+    if (son.durum === 'bitti' || son.durum === 'yarida') {
+      const nedenler = {};
+      atlanan.forEach(a => { nedenler[a.neden] = (nedenler[a.neden] || 0) + 1; });
+      const atlananYazi = Object.entries(nedenler).map(([n, s]) => n + ' ' + s).join(', ');
+      satirlar.push(el('p', { class: 'son', title: baslayan.length ? 'Başlayan: ' + baslayan.join(', ') : '' },
+        'Son: ' + gunSaat(son.basladi) + ne + ' · ' + baslayan.length + ' hesap başladı' +
+        (son.durum === 'yarida' ? ', yarıda kaldı' : '') +
+        (atlanan.length ? ' · atlanan: ' + atlananYazi : '')));
+      if (hatali.length) {
+        satirlar.push(el('p', { class: 'hatali' }, 'Başlamayan: ' + hatali.map(h => h.ad + ' (' + h.mesaj + ')').join(', ')));
+      }
+    } else if (son.durum === 'gec') {
+      satirlar.push(el('p', { class: 'son' }, 'Son tetik ' + gunSaat(son.basladi) + ': ' + son.mesaj +
+        ' (bilgisayar o saatte açık değildi).'));
+    } else if (son.durum === 'hata') {
+      satirlar.push(el('p', { class: 'hatali' }, 'Son başlatma ' + gunSaat(son.basladi) + ': ' + (son.mesaj || 'hata')));
+    }
+  }
+  document.getElementById('pencereKutu').replaceChildren(...satirlar);
+}
+
 function kart(etiket, deger, alt) {
   return el('div', { class: 'kart' }, el('div', { class: 'etiket' }, etiket),
     el('div', { class: 'deger' }, deger), alt ? el('div', { class: 'alt' }, alt) : null);
@@ -312,11 +484,14 @@ function ciz() {
 
   // Aynı anda tek giriş yapılabilir: ikincisi ilkinin giriş dosyasının üstüne yazardı.
   const eklemeSuruyor = (v.ekleme || {}).durum === 'suruyor';
+  sifirlamaCiz(v.sifirlama || {}, mesgul);
+  pencereCiz(v.pencere || {}, mesgul);
   // Haftalık sınırı Anthropic çoğu hesapta göndermiyor; hiçbirinde yoksa ve eşik girilmediyse sütun boşuna yer kaplamasın.
   const haftalikVar = v.hesaplar.some(h => h.haftalik != null) || Boolean(v.haftalik_esik);
-  document.querySelector('th.haftalik').hidden = !haftalikVar;
+  document.querySelectorAll('th.haftalik').forEach(t => { t.hidden = !haftalikVar; });
+  basliklariIsaretle();
   const govde = document.getElementById('hesaplar');
-  govde.replaceChildren(...v.hesaplar.map(h => {
+  govde.replaceChildren(...sirali(v.hesaplar).map(h => {
     const y = h.yuzde == null ? 0 : h.yuzde;
     const sinif = y >= v.esik ? 'dolu' : (y >= v.esik - 15 ? 'yakin' : '');
     const kullanim = h.yuzde == null
@@ -326,7 +501,7 @@ function ciz() {
     const sifir = h.sifirlanma
       ? el('td', { class: 'sifir' }, saat(h.sifirlanma), el('small', {}, kalan(h.sifirlanma)))
       : el('td', { class: 'sifir' }, '—', el('small', {}, h.yuzde === 0 ? 'kullanılmadı' : ''));
-    let haftalikHucre = null;
+    let haftalikHucre = null, yenilenmeHucre = null;
     if (haftalikVar) {
       if (h.haftalik == null) {
         haftalikHucre = el('td', { class: 'haftalik' }, '—');
@@ -334,18 +509,17 @@ function ciz() {
         // Haftalık eşik boşsa cswap haftalıkta da 5 saatlik eşiği kullanıyor.
         const hSinir = v.haftalik_esik != null ? v.haftalik_esik : v.esik;
         const hSinif = h.haftalik >= hSinir ? 'dolu' : (h.haftalik >= hSinir - 10 ? 'yakin' : '');
-        haftalikHucre = el('td', { class: 'haftalik' },
-          el('span', { class: 'haftalik-deger ' + hSinif }, '%' + h.haftalik),
-          h.haftalik_sifirlanma
-            ? el('small', { title: 'Haftalık yenilenme: ' + kalan(h.haftalik_sifirlanma) }, gunSaat(h.haftalik_sifirlanma))
-            : null);
+        haftalikHucre = el('td', { class: 'haftalik' }, el('span', { class: 'haftalik-deger ' + hSinif }, '%' + h.haftalik));
       }
+      yenilenmeHucre = h.haftalik_sifirlanma
+        ? el('td', { class: 'haftalik' }, gunSaat(h.haftalik_sifirlanma), el('small', {}, kalan(h.haftalik_sifirlanma)))
+        : el('td', { class: 'haftalik' }, '—');
     }
     return el('tr', { class: h.durum },
       el('td', { class: 'no' }, String(h.no)),
       el('td', { class: 'hesap' }, el('b', {}, h.ad), el('small', {}, h.kurum)),
       kullanim, sifir,
-      haftalikHucre,
+      haftalikHucre, yenilenmeHucre,
       el('td', {}, el('span', { class: 'rozet ' + h.durum }, DURUM_ADI[h.durum])),
       el('td', { class: 'islem' },
         // Okunamayan hesabın girişi çoğunlukla ölmüştür; tek tıkla yeniden giriş.
@@ -357,6 +531,12 @@ function ciz() {
           : null,
         el('button', { class: 'kucuk', disabled: h.aktif || mesgul, title: 'Bu hesaba hemen geç',
           onclick: () => islem('gec', { no: h.no }, h.ad + ' hesabına geçiliyor…') }, 'Geç'),
+        // Sıfırla yalnız işe yaradığı yerde: dolu hesap (sıradaki seçimle aynı kural, sifirlanabilir).
+        // Bu hesabın claude.ai Kullanım sayfası kendi tarayıcı penceresinde açılır; "Reset for free"a orada basılır.
+        sifirlanabilir(h)
+          ? el('button', { class: 'kucuk ana', disabled: mesgul, title: sifirlaIpucu(h),
+              onclick: () => islem('claude-ai', { no: h.no }, h.ad + ' claude.ai\'da açılıyor…') }, 'Sıfırla ↗')
+          : null,
         h.durduruldu
           ? el('button', { class: 'kucuk', disabled: mesgul, title: 'Otomatik geçiş sırasına geri al',
               onclick: () => islem('ac', { no: h.no }, h.ad + ' açılıyor…') }, 'Aç')
@@ -384,13 +564,13 @@ function ciz() {
   const ekDurum = document.getElementById('ekleDurum');
   ekDurum.hidden = !ek.durum;
   ekDurum.className = 'ekle-durum ' + (ek.durum || '');
-  ekDurum.replaceChildren(
+  ekDurum.replaceChildren(...[
     el('div', {}, ek.mesaj || ''),
     eklemeSuruyor && ek.adim ? el('div', { class: 'adim' }, 'Şu an: ' + ek.adim) : null,
     eklemeSuruyor ? el('div', { class: 'adim' }, (ek.sure_dk || 0) + ' dakikadır sürüyor · giriş 4 dakikada tamamlanmazsa yeniden sorulur') : null,
     eklemeSuruyor ? el('button', { class: 'kucuk tehlike', disabled: mesgul,
       onclick: () => islem('ekle-iptal', {}, 'Giriş iptal ediliyor…') }, 'İptal') : null,
-  );
+  ].filter(Boolean));  // replaceChildren null'u "null" yazısı olarak basar (ekleme bitince görünüyordu)
   document.querySelector('#ekleForm button').disabled = eklemeSuruyor || mesgul;
 
   document.getElementById('alt').textContent =
@@ -399,6 +579,7 @@ function ciz() {
 }
 
 let esikDegisti = false;
+let pencereDegisti = false;  // yazılmış ama kaydedilmemiş başlatma saati yoklamada ezilmesin
 let baglantiHatasi = false;
 let sayfaSurumu = null;
 
@@ -413,7 +594,7 @@ async function yukle(sessiz) {
     }
     // arayuz.html değiştiyse yeni sayfayı al (yarım iş ya da kaydedilmemiş eşik varken bekle).
     if (sayfaSurumu == null) sayfaSurumu = veri.sayfa;
-    else if (veri.sayfa != null && veri.sayfa !== sayfaSurumu && !mesgul && !esikDegisti) {
+    else if (veri.sayfa != null && veri.sayfa !== sayfaSurumu && !mesgul && !esikDegisti && !pencereDegisti) {
       location.reload();
       return;
     }
@@ -471,10 +652,31 @@ document.getElementById('esikForm').addEventListener('submit', async ev => {
     hKutu.blur();
   }
 });
+const pencereSaat = document.getElementById('pencereSaat');
+pencereSaat.addEventListener('input', () => { pencereDegisti = true; });
+pencereSaat.addEventListener('keydown', ev => {
+  if (ev.key === 'Escape' && pencereDegisti) { pencereDegisti = false; if (veri) ciz(); pencereSaat.blur(); }
+});
+document.getElementById('pencereForm').addEventListener('submit', async ev => {
+  ev.preventDefault();
+  if (await islem('pencere-kaydet', { saatler: pencereSaat.value }, 'Saatler kaydediliyor…')) {
+    pencereDegisti = false;
+    if (veri) ciz();
+    pencereSaat.blur();
+  }
+});
 document.getElementById('ekleGit').addEventListener('click', () => {
   const kutu = document.getElementById('eposta');
   kutu.scrollIntoView({ behavior: 'smooth', block: 'center' });
   kutu.focus();
+});
+document.querySelectorAll('th[data-alan] button.sirala').forEach(dugme => {
+  dugme.addEventListener('click', () => {
+    const alan = dugme.closest('th').dataset.alan;
+    siralama = siralama.alan === alan ? { alan, yon: -siralama.yon } : { alan, yon: 1 };
+    try { localStorage.setItem('siralama', JSON.stringify(siralama)); } catch { /* hatırlanmasa da sıralar */ }
+    if (veri) ciz();
+  });
 });
 document.getElementById('enIyi').addEventListener('click', () => islem('en-iyi', {}, 'En boş hesap aranıyor…'));
 document.getElementById('yenile').addEventListener('click', () => yukle(false));
@@ -489,7 +691,9 @@ document.getElementById('ekleForm').addEventListener('submit', ev => {
 let sonYukleme = 0;
 yukle(false).then(() => { sonYukleme = Date.now(); });
 setInterval(() => {
-  const suruyor = veri && veri.ekleme && veri.ekleme.durum === 'suruyor';
+  const suruyor = veri && ((veri.ekleme && veri.ekleme.durum === 'suruyor') ||
+                           (veri.sifirlama && veri.sifirlama.durum === 'suruyor') ||
+                           (veri.pencere && veri.pencere.calisiyor));
   if (mesgul || (!suruyor && Date.now() - sonYukleme < 30000)) return;
   sonYukleme = Date.now();
   yukle(true);

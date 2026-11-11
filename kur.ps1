@@ -59,6 +59,12 @@ if any(str(k).endswith('esikte-gec.py') for k in komut) and yeni not in komut:
     & $python -c $duzelt $kotaAyar (Join-Path $PSScriptRoot 'esikte-gec.py')
 }
 
+# 5 saatlik pencere başlatma saatleri kaydedildiyse görevi bu klasörün yoluyla yeniden kur:
+# klasör taşınınca eski yoldaki betik bulunamaz, görev sessizce boşa tetiklenirdi.
+if (Test-Path (Join-Path $env:LOCALAPPDATA 'claude-account-switcher\pencere-baslat.json')) {
+    & (Join-Path (Split-Path $pythonw) 'python.exe') (Join-Path $PSScriptRoot 'pencere-baslat.pyw') --kur
+}
+
 $kisayol = Join-Path ([Environment]::GetFolderPath('Desktop')) 'Claude hesapları.lnk'
 $k = (New-Object -ComObject WScript.Shell).CreateShortcut($kisayol)
 $k.TargetPath = $pythonw

@@ -20,7 +20,8 @@ Açık Claude Code oturumları yeniden başlatmadan, bir sonraki mesajda yeni he
 | Parça | Ne yapar |
 |---|---|
 | **Arka plan görevi** (`cswap-auto.pyw`) | `cswap auto`'yu penceresiz ve tek kopya çalıştırır; durursa ya da 15 dakika tek satır yazmazsa (takılma) yeniden başlatır, hiçbir hatada kendisi kapanmaz. Görev Zamanlayıcı her oturum açılışında ve 5 dakikada bir yoklar: bir sebeple düşerse en geç 5 dakikada yeniden kalkar. Elle `/login` ile listede olmayan bir hesaba girerseniz onu kendiliğinden listeye ekler. |
-| **Pencere** (`arayuz.pyw` + `arayuz.html`) | Masaüstündeki **Claude hesapları** kısayolu. Her hesabın 5 saatlik ve haftalık kullanımı, sıfırlanma saati ve durumu (Aktif / Hazır / Dolu / Durduruldu / Okunamıyor). Satırda **Geç**, **Durdur / Aç**, **Sil**, okunamayanda **Yeniden giriş**. Üstte **5 saatlik ve haftalık eşikler + Kaydet**, **En boş hesaba geç**, **+ Hesap ekle**. Son 15 geçiş. Gece boyu açık kalabilir; kod güncellenince pencere kopmadan yeni koda geçer. |
+| **Pencere** (`arayuz.pyw` + `arayuz.html`) | Masaüstündeki **Claude hesapları** kısayolu. Her hesabın 5 saatlik ve haftalık kullanımı, sıfırlanma saati ve durumu (Aktif / Hazır / Dolu / Durduruldu / Okunamıyor). Satırda **Geç**, **Durdur / Aç**, **Sil**, okunamayanda **Yeniden giriş**. Üstte **5 saatlik ve haftalık eşikler + Kaydet**, **En boş hesaba geç**, **+ Hesap ekle**. Son 15 geçiş, haftalık yenilenme takvimi. Sütun başlığına tıklayınca o sütuna göre sıralar (ad, kullanım, sıfırlanma, haftalık yenilenme tarihi; tekrar tıklayınca ters). Gece boyu açık kalabilir; kod güncellenince pencere kopmadan yeni koda geçer. |
+| **5 saatlik pencereyi başlatma** (`pencere-baslat.pyw`) | Pencereden saat seçilir (örn. `08:00, 13:00`); her gün o saatte penceresi sürmeyen her hesaba Haiku ile tek kısa mesaj gider (~900 token), hesapların 5 saatlik penceresi o an başlar ve 5 saat sonra sıfırlanır. **Şimdi başlat** ile elle de çalışır. Mesaj `cswap run` ile hesabın kendi profilinden gider: aktif giriş ve açık oturumlar değişmez. Görev Zamanlayıcı'da `claude-pencere-baslat` görevi olarak durur. |
 | **Hesap ekleme** (`hesap-ekle.ps1`) | claude.ai çıkış sekmesini ve bir kutu açar; tarayıcıda o hesapla girip **Tamam** dersiniz, gerisi kendiliğinden. Giriş beklenen hesapla bitmezse kaydetmez, yeniden sorar. |
 | **Hızlı tetik** (isteğe bağlı, `durum-satiri.py` + `esikte-gec.py`) | Claude Code'un durum satırı her yanıtta güncel yüzdeyi verir; eşik görülür görülmez geçer, dakikalık kontrolü beklemez. |
 | **Terminal tablosu** (`hesaplar.ps1`) | Pencere yerine komut satırında tek bakış. `-Izle` ile dakikada bir yenilenir. |
@@ -83,6 +84,23 @@ Kendi durum satırı betiğiniz varsa ona eklemeniz yeter: 5 saatlik veya haftal
 - Giriş tarayıcıda 4 dakikada tamamlanmazsa kapanır ve yeniden sorulur; süren girişi
   pencereden **İptal** edebilirsiniz.
 - Bütün hesaplar eşiğin üstündeyse sistem ilk sıfırlanan hesabı bekler.
+- **Hangi Claude'u değiştirir?** Claude Code'un terminali ve VS Code eklentisi (ikisi aynı giriş
+  dosyasını okur). Claude masaüstü uygulaması ve claude.ai kendi girişini kullanır, onları değiştirmez.
+- **Sıfırlama hakkı:** Anthropic hesaplara ara sıra sınır sıfırlama hakkı verir; claude.ai'de
+  Ayarlar → Kullanım → *Limit resets* → **Reset for free** ile kullanılır (Claude Code terminalinde yok).
+  Pencerede dolu satırlarda (5 saatlikte ya da haftalıkta) **Geç**'in yanında çıkan
+  **Sıfırla ↗** o hesabın Kullanım sayfasını kendi tarayıcı profilinde açar
+  (`%LOCALAPPDATA%\claude-account-switcher\tarayici`): her hesapla ilk seferde bir kez girilir, sonra hep
+  girili açılır, ana tarayıcıda çıkış-giriş gerekmez. Yalnız 5 saatlikte dolu hesapta 5 saatliği sıfırlayan
+  hak, haftalıkta dolu hesapta tam sıfırlama işe yarar; haftalığı 1 gün içinde zaten yenilenecek hesapta
+  düğme çıkmaz. **Dolu hesaplarda sırayla aç** bu hesapları en geç açılacaktan başlayarak birer birer
+  açar; pencere kapanınca sıradaki açılır. "Reset for free"a basmak her zaman kişinin işi: pencere
+  sıfırlamayı kendisi yapmaz.
+- **5 saatlik pencereyi başlatma:** Anthropic'in 5 saatlik penceresi hesabın ilk mesajıyla başlar. Seçilen
+  saatte penceresi zaten süren hesap yeniden başlatılamaz, atlanır; haftalıkta dolu, durdurulan ve
+  okunamayan hesaplar da atlanır. Mesaj boş bir klasörde, kullanıcı ayarları (hook'lar, durum satırı,
+  MCP) yüklenmeden gider. Bilgisayar o saatte açık olmalı: uykudan 30 dakikadan geç uyanırsa o seferlik
+  çalışmaz (pencereler istenmeyen saate kaymasın). Sonuç `pencere-baslat.log`'da.
 - **Gece açık bırakırken** bilgisayar uykuya geçmesin: uykuda Claude Code oturumları da,
   geçiş de durur. Dizüstünde prize takılı bırakın (pilde uyku süresi genelde kısadır).
 
@@ -99,6 +117,7 @@ Kendi durum satırı betiğiniz varsa ona eklemeniz yeter: 5 saatlik veya haftal
 
 ```powershell
 Unregister-ScheduledTask -TaskName cswap-auto -Confirm:$false
+Unregister-ScheduledTask -TaskName claude-pencere-baslat -Confirm:$false -ErrorAction SilentlyContinue
 Remove-Item "$([Environment]::GetFolderPath('Desktop'))\Claude hesapları.lnk"
 ```
 

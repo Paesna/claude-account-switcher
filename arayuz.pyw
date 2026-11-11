@@ -141,13 +141,17 @@ def esik_oku():
     return saatlik, haftalik
 
 
-def gorev_calisiyor():
-    # cswap-auto.pyw tek kopyayı bu adlı mutex'le tutuyor; varsa görev ayakta.
-    h = k32.OpenMutexW(0x00100000, False, 'Local\\claude-account-switcher-auto')
+def mutex_var(ad):
+    h = k32.OpenMutexW(0x00100000, False, ad)  # SYNCHRONIZE
     if h:
         k32.CloseHandle(h)
         return True
     return False
+
+
+def gorev_calisiyor():
+    # cswap-auto.pyw tek kopyayı bu adlı mutex'le tutuyor; varsa görev ayakta.
+    return mutex_var('Local\\claude-account-switcher-auto')
 
 
 def gorevi_yeniden_baslat():
@@ -341,8 +345,11 @@ def durum():
     if ek.get('durum') == 'suruyor':
         ek['adim'] = ekleme_adimi()
         ek['sure_dk'] = int((time.time() - ek.get('basladi', time.time())) // 60)
+    with kilit:
+        sifirlama = {k: v for k, v in sira.items() if k != 'iptal'}
     return {'esik': esik, 'haftalik_esik': haftalik_esik, 'gorev': gorev_calisiyor(), 'hesaplar': liste,
-            'gecisler': gecisler({h['no']: h['ad'] for h in liste}), 'ekleme': ek,
+            'gecisler': gecisler({h['no']: h['ad'] for h in liste}), 'ekleme': ek, 'sifirlama': sifirlama,
+            'pencere': pencere_durumu(),
             'saat': datetime.now().astimezone().isoformat(), 'sayfa': sayfa_surumu()}
 
 
@@ -561,8 +568,218 @@ def kapandi(_):
     return 'Tamam.'
 
 
+# Sıfırlama hakkı (limit reset): Anthropic hesaplara ara sıra verir; claude.ai'de (ve masaüstü
+# uygulamasında) Ayarlar → Kullanım → "Limit resets" → "Reset for free" ile kullanılır, Claude Code
+# terminalinde yok (support.claude.com/en/articles/17007452). Tıklamayı kişi yapar: pencere yalnız
+# doğru hesabın Kullanım sayfasını açar. claude.ai'nin girişi Claude Code'unkinden ayrı; her hesap
+# kendi tarayıcı profilinde açılır, ilk seferde bir kez girilir, sonra girili kalır. Ana tarayıcıda
+# çıkış-giriş gerekmez, hesaplar birbirinin oturumunu bozmaz.
+CLAUDE_AI_KULLANIM = 'https://claude.ai/settings/usage'
+TARAYICI_PROFILLERI = os.path.join(os.environ.get('LOCALAPPDATA') or KLASOR, 'claude-account-switcher', 'tarayici')
+sira = {'durum': None}  # dolu hesaplarda sırayla: durum, hesaplar, simdiki, sira_no, iptal
+
+
+def profil_yolu(eposta):
+    # Klasör numaradan değil e-postadan: cswap swap/move numaraları değiştirebilir.
+    return os.path.join(TARAYICI_PROFILLERI, re.sub(r'[^A-Za-z0-9]+', '_', eposta))
+
+
+def kullanim_sayfasi_ac(eposta):
+    """Hesabın kendi tarayıcı profilinde claude.ai Kullanım sayfasını açar. (süreç, ilk kez mi) verir;
+    tarayıcı yoksa (None, None)."""
+    tarayici = next((t for t in TARAYICILAR if os.path.exists(t)), None)
+    if not tarayici:
+        webbrowser.open(CLAUDE_AI_KULLANIM)
+        return None, None
+    profil = profil_yolu(eposta)
+    ilk_kez = not os.path.isdir(profil)
+    p = subprocess.Popen([tarayici, '--user-data-dir=' + profil, '--no-first-run', '--no-default-browser-check',
+                          '--window-size=1200,900', CLAUDE_AI_KULLANIM])
+    return p, ilk_kez
+
+
+def pencere_kapanana_kadar(p, eposta):
+    """Ayrı profilin tarayıcısı pencere kapanınca biter. Profil zaten açıksa yeni süreç işi açık olana
+    verip hemen çıkar; o zaman profilin kilidi kalkana kadar beklenir."""
+    p.wait()
+    kilit_dosyasi = os.path.join(profil_yolu(eposta), 'lockfile')
+    while os.path.exists(kilit_dosyasi):
+        try:
+            os.remove(kilit_dosyasi)  # Tarayıcı açıkken silinemez; silindiyse tarayıcı kapanmıştır.
+        except OSError:
+            time.sleep(2)
+            continue
+        break
+
+
+def claude_ai(govde):
+    no = no_al(govde)
+    hesap = next((a for a in cswap_liste()['accounts'] if a['number'] == no), None)
+    if not hesap:
+        raise ValueError('Bu numarada hesap yok.')
+    p, ilk_kez = kullanim_sayfasi_ac(hesap['email'])
+    if p is None:
+        return ('Varsayılan tarayıcıda açıldı: orada %s ile girili olmalısın. Kullanım sayfasında '
+                '"Limit resets" altındaki "Reset for free".' % hesap['email'])
+    if ilk_kez:
+        return ('%s için ayrı bir tarayıcı penceresi açıldı. İlk sefer: claude.ai\'a %s ile gir; sonra Kullanım '
+                'sayfasında "Limit resets" altındaki "Reset for free". Bundan sonra bu pencere hep girili açılır.'
+                % (ad(hesap['email']), hesap['email']))
+    return '%s açıldı: "Limit resets" altındaki "Reset for free".' % ad(hesap['email'])
+
+
+def sifirlanabilir(h, simdi_ts):
+    """Sıfırlama hakkı bu hesapta işe yarar mı (arayuz.html'deki sifirlanabilir() ile aynı kural).
+    Yalnız 5 saatlikte dolu: evet; 5 saatliği sıfırlayan hak hesabı hemen açar. Haftalıkta dolu:
+    yalnız haftalığı 24 saatten uzaktaysa; 5 saatlik sıfırlama haftalık doluyken hesabı açmaz,
+    birkaç saat sonra zaten yenilenecek hesaba da tam sıfırlama harcanmasın."""
+    if h['durum'] not in ('aktif', 'dolu'):
+        return False
+    if h['haftalik_dolu']:
+        return bool(h['haftalik_sifirlanma']) and \
+            datetime.fromisoformat(h['haftalik_sifirlanma']).timestamp() > simdi_ts + 24 * 3600
+    return bool(h['saatlik_dolu'])
+
+
+def sira_adaylari():
+    """Sıfırlamanın işe yaradığı dolu hesaplar, en geç açılacak olan önce: sıfırlama en çok orada kazandırır."""
+    esik, haftalik_esik = esik_oku()
+    simdi_ts = datetime.now(timezone.utc).timestamp()
+    adaylar = [h for h in hesaplar(esik, haftalik_esik) if sifirlanabilir(h, simdi_ts)]
+    adaylar.sort(key=lambda h: h['acilma'] or '', reverse=True)
+    return adaylar
+
+
+def sifirla_sira(_):
+    if not any(os.path.exists(t) for t in TARAYICILAR):
+        raise ValueError('Sırayla açmak için Chrome ya da Edge gerekiyor.')
+    with kilit:
+        if sira.get('durum') == 'suruyor':
+            raise ValueError('Sıra zaten sürüyor.')
+    adaylar = sira_adaylari()
+    if not adaylar:
+        raise ValueError('Sıfırlamanın işe yarayacağı dolu hesap yok.')
+    with kilit:
+        sira.clear()
+        sira.update(durum='suruyor', hesaplar=[h['ad'] for h in adaylar], simdiki=None, sira_no=0, iptal=False)
+
+    def calistir():
+        try:
+            for i, h in enumerate(adaylar, 1):
+                with kilit:
+                    if sira.get('iptal'):
+                        break
+                    sira.update(simdiki=h['ad'], sira_no=i)
+                p, _ = kullanim_sayfasi_ac(h['eposta'])
+                pencere_kapanana_kadar(p, h['eposta'])
+            liste_bayat()
+        except Exception:
+            log('sirayla sifirlama hatasi: ' + traceback.format_exc())
+        finally:
+            with kilit:
+                sira.update(durum='iptal' if sira.get('iptal') else 'bitti', simdiki=None)
+
+    threading.Thread(target=calistir, daemon=True).start()
+    return ('%d hesap sırayla açılacak. Her pencerede "Reset for free"a bas, sonra pencereyi kapat; '
+            'sıradaki kendiliğinden açılır.' % len(adaylar))
+
+
+def sifirla_iptal(_):
+    with kilit:
+        if sira.get('durum') != 'suruyor':
+            raise ValueError('Süren bir sıra yok.')
+        sira['iptal'] = True
+    return 'Açık pencereyi kapatınca sıra duracak.'
+
+
+# 5 saatlik pencereleri seçilen saatte başlatma. İşi pencere-baslat.pyw yapar (Görev Zamanlayıcı'daki
+# "claude-pencere-baslat" görevi ya da "Şimdi başlat"); pencere saatleri kaydeder ve son durumu gösterir.
+PENCERE_BETIK = os.path.join(KLASOR, 'pencere-baslat.pyw')
+PENCERE_VERI = os.path.join(os.environ.get('LOCALAPPDATA') or KLASOR, 'claude-account-switcher')
+PENCERE_AYAR = os.path.join(PENCERE_VERI, 'pencere-baslat.json')
+PENCERE_DURUM = os.path.join(PENCERE_VERI, 'pencere-baslat.durum.json')
+PENCERE_MUTEX = 'Local\\claude-account-switcher-pencere'
+DETACHED_PROCESS = 0x00000008
+CREATE_NEW_PROCESS_GROUP = 0x00000200
+CREATE_BREAKAWAY_FROM_JOB = 0x01000000
+
+
+def json_dosya(yol):
+    try:
+        with open(yol, encoding='utf-8') as f:
+            veri = json.load(f)
+        return veri if isinstance(veri, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def yorumlayici(konsolsuz):
+    """Pencere pythonw ile açılır; betiğin çıktısını okumak için yanındaki python.exe gerekir."""
+    yol = os.path.join(os.path.dirname(sys.executable), 'pythonw.exe' if konsolsuz else 'python.exe')
+    return yol if os.path.exists(yol) else sys.executable
+
+
+def pencere_durumu():
+    son = json_dosya(PENCERE_DURUM)
+    calisiyor = mutex_var(PENCERE_MUTEX)
+    if son.get('durum') == 'suruyor' and not calisiyor:
+        son['durum'] = 'yarida'  # süreç bitirmeden kapandı (bilgisayar kapandı vb.)
+    return {'saatler': json_dosya(PENCERE_AYAR).get('saatler') or [], 'calisiyor': calisiyor, 'son': son}
+
+
+def saatleri_coz(metin):
+    saatler = set()
+    for parca in re.split(r'[\s,;]+', str(metin or '').strip()):
+        if not parca:
+            continue
+        m = re.fullmatch(r'(\d{1,2})(?:[:.](\d{2}))?', parca)
+        if not m or int(m.group(1)) > 23 or int(m.group(2) or 0) > 59:
+            raise ValueError('"%s" saat değil: 08:00 gibi yaz, birden çoksa virgülle ayır.' % parca)
+        saatler.add('%02d:%02d' % (int(m.group(1)), int(m.group(2) or 0)))
+    if len(saatler) > 6:
+        raise ValueError('En çok 6 saat yazılabilir.')
+    return sorted(saatler)
+
+
+def pencere_kaydet(govde):
+    saatler = saatleri_coz(govde.get('saatler'))
+    r = subprocess.run([yorumlayici(False), PENCERE_BETIK, '--saatler', *saatler], capture_output=True,
+                       text=True, encoding='utf-8', errors='replace', env=ORTAM, cwd=KLASOR,
+                       creationflags=CREATE_NO_WINDOW, timeout=90)
+    if r.returncode != 0:
+        raise RuntimeError(ilk_satir(r.stdout, r.stderr) or 'Kaydedilemedi (kod %s).' % r.returncode)
+    if not saatler:
+        return 'Saatler silindi: zamanlanmış başlatma kapandı. "Şimdi başlat" yine çalışır.'
+    mesaj = 'Kaydedildi: her gün %s saatinde boştaki hesapların 5 saatlik penceresi başlar.' % ', '.join(saatler)
+    # Arası 5 saatten kısa saatlerde ikinci tetikte, ilkinde başlayan pencereler hâlâ sürer.
+    dakika = [int(s[:2]) * 60 + int(s[3:]) for s in saatler]
+    araliklar = [b - a for a, b in zip(dakika, dakika[1:])] + ([dakika[0] + 1440 - dakika[-1]] if len(dakika) > 1 else [])
+    if any(a < 300 for a in araliklar):
+        mesaj += ' Not: arası 5 saatten kısa saatlerde, öncekinde başlayan hesaplar sürdüğü için atlanır.'
+    return mesaj
+
+
+def pencere_simdi(_):
+    if mutex_var(PENCERE_MUTEX):
+        raise ValueError('Başlatma zaten sürüyor.')
+    komut = [yorumlayici(True), PENCERE_BETIK, '--simdi']
+    # Pencere kapansa ya da yeni koda devretse de başlatma yarıda kalmasın: ayrı süreç.
+    bayrak = DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP
+    try:
+        subprocess.Popen(komut, cwd=KLASOR, env=ORTAM, creationflags=bayrak | CREATE_BREAKAWAY_FROM_JOB)
+    except OSError:
+        subprocess.Popen(komut, cwd=KLASOR, env=ORTAM, creationflags=bayrak)
+    for _ in range(20):  # sayfa ilk yoklamada "sürüyor" görsün
+        if mutex_var(PENCERE_MUTEX):
+            break
+        time.sleep(0.25)
+    return 'Başlatılıyor: boştaki her hesaba sırayla tek kısa mesaj gidiyor (hesap başına birkaç saniye).'
+
+
 ISLEMLER = {'gec': gec, 'en-iyi': en_iyi, 'durdur': durdur, 'ac': ac, 'esik': esik_kaydet, 'ekle': ekle,
-            'ekle-iptal': ekle_iptal, 'sil': sil, 'kapandi': kapandi}
+            'ekle-iptal': ekle_iptal, 'sil': sil, 'kapandi': kapandi, 'claude-ai': claude_ai,
+            'sifirla-sira': sifirla_sira, 'sifirla-iptal': sifirla_iptal,
+            'pencere-kaydet': pencere_kaydet, 'pencere-simdi': pencere_simdi}
 
 
 class Isleyici(BaseHTTPRequestHandler):
@@ -684,7 +901,7 @@ def calis(sunucu):
         while True:
             time.sleep(15)
             with kilit:
-                mesgul = ekleme.get('durum') == 'suruyor' or islem_sayisi > 0
+                mesgul = ekleme.get('durum') == 'suruyor' or islem_sayisi > 0 or sira.get('durum') == 'suruyor'
             if mesgul:
                 continue
             if time.time() - son_istek > BOSTA_KAPAN_SN:

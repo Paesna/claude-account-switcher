@@ -300,8 +300,9 @@ def gecisler(adlar):
                 m = ELLE.search(s)
                 if m and kayit[1]:
                     elle = m.group(1) == 'elle'
+                    neden = 'elle' if elle else ('sınır hatası' if 'sınır' in m.group(1) else 'hızlı tetik')
                     _olay({'zaman': kayit[1], 'kime': ad(m.group(3)),
-                           'neden': 'elle' if elle else 'hızlı tetik', 'tur': 'elle' if elle else 'hizli'})
+                           'neden': neden, 'tur': 'elle' if elle else 'hizli'})
         olaylar = sorted(_olaylar.values(), key=lambda o: o['zaman'], reverse=True)
         if len(olaylar) > 300:
             for o in olaylar[300:]:

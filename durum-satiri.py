@@ -2,8 +2,9 @@
 
 Claude Code her yanıttan sonra durum satırı komutunu çalıştırır ve stdin'e o anki
 kullanımı verir (rate_limits.five_hour ve rate_limits.seven_day). Bu betik kısa bir
-satır yazar ve 5 saatlik veya haftalık kullanım kendi eşiğine gelince esikte-gec.py'yi
-arka planda başlatır. Böylece geçiş, cswap auto'nun dakikalık kontrolünü beklemeden olur.
+satır yazar ve yüzde değiştikçe esikte-gec.py --aktar'ı arka planda başlatır: okuma
+claude-swap'ın deposuna yazılır (pencere anlık yüzdeyi gösterir), aktif hesap eşikteyse
+hemen geçilir. Böylece geçiş, cswap auto'nun dakikalık kontrolünü beklemeden olur.
 
 Eşikler cswap'ın kendi ayarından okunur (pencereden ya da
 `cswap config set autoswitch.threshold 90` / `cswap config set autoswitch.weeklyThreshold 95`
@@ -16,10 +17,13 @@ import json
 import os
 import subprocess
 import sys
+import time
 
 KLASOR = os.path.dirname(os.path.abspath(__file__))
-ISARETLER = os.path.join(KLASOR, 'tetik')
+AKTARIM = os.path.join(KLASOR, 'tetik', 'aktarim.json')
 CSWAP_AYAR = os.path.expanduser(r'~\.claude-swap-backup\settings.json')
+AKTAR_ARALIK_SN = 8
+ACIL_PAY = 5
 
 
 def esik():
@@ -64,29 +68,41 @@ def main():
     elif model:
         print(model)
 
-    saatlik_sinir = esik()
-    h_sinir = haftalik_esik()
-
-    saatlik_dolu = yuzde is not None and sifirlanma and yuzde >= saatlik_sinir
-    haftalik_dolu = h_yuzde is not None and h_sifirlanma and h_sinir is not None and h_yuzde >= h_sinir
-
-    if not saatlik_dolu and not haftalik_dolu:
+    if yuzde is None and h_yuzde is None:
         return
-
-    # Aynı pencerede ikinci kez tetiklemesin: geçişten sonra eski oturumlar eski hesabın
-    # yüzdesini bir süre daha yazabiliyor. O_EXCL: aynı anda eşiği gören iki oturumdan biri.
-    isaret = str(sifirlanma) if saatlik_dolu else ('w_' + str(h_sifirlanma))
-    os.makedirs(ISARETLER, exist_ok=True)
+    # Yüzde her değiştiğinde esikte-gec.py --aktar: okumayı claude-swap'ın deposuna yazar
+    # (pencere ve cswap auto dakikalık okumayı beklemez), aktif hesap eşikteyse geçer. Hangi
+    # hesaba ait olduğunu ve eski bir oturumdan gelip gelmediğini o ayırt eder. Eşiğin
+    # altında en sık AKTAR_ARALIK_SN'de bir, eşiğe ACIL_PAY puan kala her değişimde.
+    imza = [yuzde, sifirlanma, h_yuzde, h_sifirlanma]
     try:
-        os.close(os.open(os.path.join(ISARETLER, isaret), os.O_CREAT | os.O_EXCL | os.O_WRONLY))
-    except FileExistsError:
+        with open(AKTARIM, encoding='utf-8') as f:
+            onceki = json.load(f)
+    except (OSError, ValueError):
+        onceki = {}
+    if onceki.get('imza') == imza:
         return
+    h_sinir = haftalik_esik() or 100.0
+    acil = (yuzde or 0) >= esik() - ACIL_PAY or (h_yuzde or 0) >= h_sinir - ACIL_PAY
+    simdi = time.time()
+    if not acil and simdi - onceki.get('zaman', 0) < AKTAR_ARALIK_SN:
+        return
+    try:
+        os.makedirs(os.path.dirname(AKTARIM), exist_ok=True)
+        with open(AKTARIM, 'w', encoding='utf-8') as f:
+            json.dump({'imza': imza, 'zaman': simdi}, f)
+    except OSError:
+        pass
+    okuma = {'zaman': simdi}
+    if yuzde is not None:
+        okuma['five_hour'] = {'used_percentage': yuzde, 'resets_at': sifirlanma}
+    if h_yuzde is not None:
+        okuma['seven_day'] = {'used_percentage': h_yuzde, 'resets_at': h_sifirlanma}
 
-    # Durum satırı hemen dönmeli; geçiş ayrı ve penceresiz süreçte yapılır.
+    # Durum satırı hemen dönmeli; aktarım ve geçiş ayrı ve penceresiz süreçte yapılır.
     bayrak = 0x00000008 | 0x08000000 | 0x00000200  # DETACHED | CREATE_NO_WINDOW | NEW_PROCESS_GROUP
-    kota_metni = str(int(yuzde)) if saatlik_dolu else (str(int(h_yuzde)) + ' hafta')
-    subprocess.Popen([sys.executable, os.path.join(KLASOR, 'esikte-gec.py')], creationflags=bayrak,
-                     close_fds=True, env=dict(os.environ, KOTA_YUZDE=kota_metni),
+    subprocess.Popen([sys.executable, os.path.join(KLASOR, 'esikte-gec.py'), '--aktar', json.dumps(okuma)],
+                     creationflags=bayrak, close_fds=True, env=dict(os.environ),
                      stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 

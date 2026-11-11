@@ -23,7 +23,7 @@ Açık Claude Code oturumları yeniden başlatmadan, bir sonraki mesajda yeni he
 | **Pencere** (`arayuz.pyw` + `arayuz.html`) | Masaüstündeki **Claude hesapları** kısayolu. Her hesabın 5 saatlik ve haftalık kullanımı, sıfırlanma saati ve durumu (Aktif / Hazır / Dolu / Durduruldu / Okunamıyor). Satırda **Geç**, **Durdur / Aç**, **Sil**, okunamayanda **Yeniden giriş**. Üstte **5 saatlik ve haftalık eşikler + Kaydet**, **En boş hesaba geç**, **+ Hesap ekle**. Son 15 geçiş, haftalık yenilenme takvimi. Sütun başlığına tıklayınca o sütuna göre sıralar (ad, kullanım, sıfırlanma, haftalık yenilenme tarihi; tekrar tıklayınca ters). Gece boyu açık kalabilir; kod güncellenince pencere kopmadan yeni koda geçer. |
 | **5 saatlik pencereyi başlatma** (`pencere-baslat.pyw`) | Pencereden saat seçilir (örn. `08:00, 13:00`); her gün o saatte penceresi sürmeyen her hesaba Haiku ile tek kısa mesaj gider (~900 token), hesapların 5 saatlik penceresi o an başlar ve 5 saat sonra sıfırlanır. **Şimdi başlat** ile elle de çalışır. Mesaj `cswap run` ile hesabın kendi profilinden gider: aktif giriş ve açık oturumlar değişmez. Görev Zamanlayıcı'da `claude-pencere-baslat` görevi olarak durur. |
 | **Hesap ekleme** (`hesap-ekle.ps1`) | claude.ai çıkış sekmesini ve bir kutu açar; tarayıcıda o hesapla girip **Tamam** dersiniz, gerisi kendiliğinden. Giriş beklenen hesapla bitmezse kaydetmez, yeniden sorar. |
-| **Hızlı tetik** (isteğe bağlı, `durum-satiri.py` + `esikte-gec.py`) | Claude Code'un durum satırı her yanıtta güncel yüzdeyi verir; eşik görülür görülmez geçer, dakikalık kontrolü beklemez. |
+| **Anlık yüzde ve hızlı tetik** (önerilir, `durum-satiri.py` + `esikte-gec.py`) | Claude Code'un durum satırı her yanıtta güncel yüzdeyi verir. Yüzde değiştikçe claude-swap'ın deposuna yazılır: pencere ve otomatik geçiş dakikalık okumayı beklemez. Aktif hesap eşiğe gelince boş hesaba hemen geçilir. Bir oturum yine de sınıra çarparsa `StopFailure` hook'u hesabı anında değiştirir. |
 | **Terminal tablosu** (`hesaplar.ps1`) | Pencere yerine komut satırında tek bakış. `-Izle` ile dakikada bir yenilenir. |
 | **Kurulum** (`kur.ps1`) | Görevi kurar ve başlatır, masaüstü kısayolunu koyar. |
 
@@ -65,8 +65,21 @@ Klasörü sonradan taşırsanız `kur.ps1`'i yeniden çalıştırın (görevin y
 }
 ```
 
-Kendi durum satırı betiğiniz varsa ona eklemeniz yeter: 5 saatlik veya haftalık kullanım kendi eşiğine gelince
-`esikte-gec.py`'yi (pencere başına bir kez) çalıştırsın.
+Kendi durum satırı betiğiniz varsa ona eklemeniz yeter: yüzde değiştikçe (birkaç saniyede bir)
+`esikte-gec.py --aktar '<json>'`'u arka planda çalıştırsın; json
+`{"five_hour": {"used_percentage", "resets_at"}, "seven_day": {...}, "zaman": <unix>}`.
+Okumanın hangi hesaba ait olduğunu (geçişten sonra eski hesabı çizen oturumlar olur) ve aynı
+pencerede eski bir okuma olup olmadığını `esikte-gec.py` ayırt eder.
+
+Oturum sınıra çarparsa hesabın hemen değişmesi için aynı dosyaya (sınır hatasında Claude Code
+bu hook'u çalıştırır; oturum durur, hesap değişir, "devam" yazınca yeni hesapla sürer):
+
+```json
+"hooks": {
+  "StopFailure": [{"matcher": "rate_limit", "hooks": [{"type": "command", "command": "py",
+    "args": ["-3", "C:/Users/<siz>/claude account switcher/esikte-gec.py", "--limit"], "timeout": 60}]}]
+}
+```
 
 ## Bilinmesi gerekenler
 
@@ -77,8 +90,14 @@ Kendi durum satırı betiğiniz varsa ona eklemeniz yeter: 5 saatlik veya haftal
   olabilir. Diğer hesapla `/login` yapın (görev onu kendiliğinden listeye alır).
 - **Neden dakikada bir?** Anthropic'in kullanım bilgisi ucu hesap başına saatte ~30 isteğe
   izin verir, fazlasında bir saate kadar kilitler. claude-swap bu yüzden normalde 3 dakikada
-  bir, eşiğe yaklaşınca dakikada bir sorar. Çok oturum açıkken hesap dakikada birkaç puan
-  eriyebilir; bunun için hızlı tetik var. Pencere aynı depodan okur, fazladan istek göndermez.
+  bir, eşiğe yaklaşınca dakikada bir sorar. Çok oturum açıkken hesap dakikada 15-35 puan
+  eriyebilir: dakikalık okuma hem geç görünür hem eşiği kaçırır. Bunun için durum satırının anlık
+  yüzdesi depoya aktarılır. Pencere aynı depodan okur, fazladan istek göndermez.
+- **Bütün hesaplar eşiğin üstündeyse** hızlı tetik karışmaz: claude-swap ilk sıfırlanacak hesaba
+  gider. Oturum sınıra çarparsa aktiften en az 5 puan boş bir hesaba (örn. %96'daki) geçilir.
+- claude-swap'ın geçişten sonraki bekleme süresi 60 sn önerilir (varsayılan 300):
+  `cswap config set autoswitch.cooldownSeconds 60`. 300 sn'de, eski verisi yüzünden dolu bir
+  hesaba geçildiğinde 5 dakika başka hesaba geçilmiyordu.
 - **Durdur** hesabı otomatik geçişin dışına alır, girişini silmez. **Sil** hesabı ve kayıtlı
   girişini claude-swap'tan kaldırır; aktif hesap silinemez.
 - Giriş tarayıcıda 4 dakikada tamamlanmazsa kapanır ve yeniden sorulur; süren girişi

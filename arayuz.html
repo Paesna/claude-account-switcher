@@ -574,7 +574,7 @@ function ciz() {
   document.querySelector('#ekleForm button').disabled = eklemeSuruyor || mesgul;
 
   document.getElementById('alt').textContent =
-    'Son yenileme ' + saat(v.saat) + ' · 30 saniyede bir kendiliğinden yenilenir · kullanım bilgisi cswap\'ın deposundan okunur, Anthropic\'e fazladan istek gitmez' +
+    'Son yenileme ' + saat(v.saat) + ' · 10 saniyede bir yenilenir · aktif hesabın yüzdesi durum satırından anlık gelir, ötekiler cswap\'ın deposundan; Anthropic\'e fazladan istek gitmez' +
     (esikDegisti ? ' · eşik değişikliği kaydedilmedi (Kaydet ya da Esc)' : '');
 }
 
@@ -686,7 +686,7 @@ document.getElementById('ekleForm').addEventListener('submit', ev => {
   islem('ekle', { eposta: kutu.value.trim() }, 'Hesap ekleme başlıyor…').then(() => { kutu.value = ''; });
 });
 
-// Giriş sürerken adımı 5 saniyede bir göster; yoksa 30 saniyede bir yenilemek yeter.
+// Giriş sürerken adımı 5 saniyede bir göster; yoksa 10 saniyede bir: aktif hesabın yüzdesi durum satırından anlık geliyor.
 // Simge durumundaki pencerede Chrome bunu dakikada bire indirir; sunucu 12 saat bekler.
 let sonYukleme = 0;
 yukle(false).then(() => { sonYukleme = Date.now(); });
@@ -694,7 +694,7 @@ setInterval(() => {
   const suruyor = veri && ((veri.ekleme && veri.ekleme.durum === 'suruyor') ||
                            (veri.sifirlama && veri.sifirlama.durum === 'suruyor') ||
                            (veri.pencere && veri.pencere.calisiyor));
-  if (mesgul || (!suruyor && Date.now() - sonYukleme < 30000)) return;
+  if (mesgul || (!suruyor && Date.now() - sonYukleme < 10000)) return;
   sonYukleme = Date.now();
   yukle(true);
 }, 5000);

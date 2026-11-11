@@ -2,6 +2,7 @@
 *.log
 *.log.old
 arayuz.acik.json
+anlik.json
 tetik/
 __pycache__/
 # Eski makro denemeleri (fare koordinatları ve hesap adları)

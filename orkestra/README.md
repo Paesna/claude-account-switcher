@@ -80,3 +80,28 @@ Ekranda Şef Seçimi, Modeller, Akıl Yürütme ve **Ana Görev (Prompt) Kutusu*
 # bu klasörde:
 py app.py
 ```
+
+---
+
+## Ajanları çıkarma / ekleme
+
+Ajan listesi `%LOCALAPPDATA%\claude-account-switcher\orkestra\ajanlar.json` dosyasındadır (kullanıcı verisi, depoya
+girmez; `ORKESTRA_AJANLAR` ortam değişkeniyle başka yol verilebilir). Dosya yoksa liste Claude Code, Antigravity,
+Codex ve Muse'dur. Panel bu dosyayı `runner.py` kipleriyle değiştirir:
+
+```powershell
+py runner.py --ajan-sil muse            # yerleşik ajanı listeden çıkarır (gizler), geri alınabilir
+py runner.py --ajan-geri muse           # geri koyar
+py runner.py --ajan-ekle ajan.json      # özel ajan ekler (aşağıdaki biçim)
+py runner.py --ajan-sil mimo            # özel ajanı siler
+```
+
+Özel ajan, kendi CLI'ını çağırır; istem **argümanla geçmez** (`.cmd` kabuğu enjeksiyonu): geçici dosyayla
+(`"istem": "dosya"`, `{istem_dosyasi}`) ya da stdin'le. Yer tutucular yalnız `{klasor}`, `{istem_dosyasi}`,
+`{model}`, `{effort}`; `model_arg`/`effort_arg` yalnız model/seviye seçiliyse (ve "default" değilse) eklenir. Çıktıdaki
+ANSI renk kodları temizlenir. En az bir ajan listede kalmalıdır. Örnek ön ayar: `ozel_ajan.MIMO_ONAYARI`.
+
+Notlar (MiMo): `mimo run -f` bir dizi seçeneğidir, bu yüzden mesaj `-f`'den önce gelir. MiMo `--dir` klasöründe bir
+`.mimocode` klasörü oluşturur. API anahtarı geçersizse `Error: Invalid API Key` yazar ama çıkış kodu 0 döner.
+
+Testler: `py test_runner.py`, `py test_ozel_ajan.py` (ikisi de kota yemez).

@@ -4,6 +4,7 @@ Integrates dynamic model & reasoning effort discovery from native CLIs.
 """
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
+import ozel_ajan
 from model_discovery import load_cached_models, sync_all_models
 
 @dataclass
@@ -27,8 +28,41 @@ class ProviderConfig:
     icon: str
     description: str
 
-def get_live_providers() -> Dict[str, ProviderConfig]:
-    """Builds ProviderConfig dynamically using models and efforts fetched from CLIs."""
+def _custom_provider(spec: dict) -> ProviderConfig:
+    """ProviderConfig for a user-defined agent (ajanlar.json). Empty model/effort lists show a single
+    "default" entry, which adds no CLI argument (see adapters/ozel_adapter.py)."""
+    models = [ModelInfo(m, m, "special") for m in spec["modeller"]] or [ModelInfo("default", "Varsayılan model", "special")]
+    efforts = list(spec["efforlar"]) or ["default"]
+    return ProviderConfig(
+        key=spec["anahtar"],
+        name=spec["ad"],
+        binary=spec["komut"],
+        default_model=spec["varsayilan_model"] or models[0].id,
+        default_effort=spec["varsayilan_effort"] or efforts[0],
+        models=models,
+        efforts=efforts,
+        color="bright_yellow",
+        icon=spec["ikon"],
+        description="Özel ajan: %s" % spec["komut"],
+    )
+
+
+def get_live_providers(include_hidden: bool = False) -> Dict[str, ProviderConfig]:
+    """Builds ProviderConfig dynamically using models and efforts fetched from CLIs.
+
+    Built-in agents the user removed from the list (ajanlar.json "gizli") are left out unless
+    `include_hidden`; custom agents are appended. No ajanlar.json = the four built-in agents."""
+    settings = ozel_ajan.yukle()
+    providers = _builtin_providers()
+    if not include_hidden:
+        for key in settings["gizli"]:
+            providers.pop(key, None)
+    for spec in settings["ozel"]:
+        providers[spec["anahtar"]] = _custom_provider(spec)
+    return providers
+
+
+def _builtin_providers() -> Dict[str, ProviderConfig]:
     data = load_cached_models()
     if not data or not all(k in data for k in ["claude", "agy", "codex", "muse"]):
         data = sync_all_models(force=False)
@@ -85,5 +119,6 @@ def get_live_providers() -> Dict[str, ProviderConfig]:
     }
 
 AVAILABLE_PROVIDERS = get_live_providers()
-DEFAULT_CONDUCTOR = "claude"
-DEFAULT_WORKERS = ["agy", "codex", "muse"]
+# A removed (hidden) agent must not be the default; custom agents are never default workers.
+DEFAULT_CONDUCTOR = "claude" if "claude" in AVAILABLE_PROVIDERS else next(iter(AVAILABLE_PROVIDERS), "claude")
+DEFAULT_WORKERS = [k for k in ("agy", "codex", "muse") if k in AVAILABLE_PROVIDERS]

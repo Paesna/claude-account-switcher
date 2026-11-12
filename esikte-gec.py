@@ -23,6 +23,11 @@ gösterir; geçişten sonra bir süre eski hesabın yüzdesini çizen oturumlar 
 ve haftalık sıfırlanma saatleri kayıtla karşılaştırılır: aktif hesapla çelişen ya da başka bir
 hesapla eşleşen okuma aktif hesaba yazılmaz, ona göre geçiş yapılmaz. Aynı penceredeki yüzde
 yalnız artar: kayıttan düşük okuma eski bir oturumdandır, aktarılmaz.
+
+Fable sınırı ve öncelik sırası (gecis_politika.py; ayar: %LOCALAPPDATA%\\claude-account-switcher\\gecis-ayar.json,
+panelden değiştirilir): Fable sınırı varsa aktif hesabın Fable yüzdesi (durum satırında yok, cswap deposundan,
+okuma sıklığı kadar gecikmeli) sınıra gelince de geçilir ve hedef seçerken Fable'ı sınırda olan hesap elenir.
+Öncelik açıksa hedef "en boş" yerine listedeki ilk uygun hesaptır. Ayar okunamazsa eski davranış sürer.
 """
 import ctypes
 import json
@@ -33,6 +38,11 @@ import time
 from datetime import datetime, timezone
 
 KLASOR = os.path.dirname(os.path.abspath(__file__))
+if KLASOR not in sys.path:  # durum satırı betiği tam yolla çağırıyor: yanındaki modüller bulunsun
+    sys.path.insert(0, KLASOR)
+import gecis_politika  # noqa: E402  Fable sınırı, öncelik sırası ve hedef seçimi
+from gecis_politika import hedef_sec, kayit  # noqa: E402,F401  (kayit: uyum/yeni_kullanim da kullanıyor)
+
 CSWAP = os.path.expanduser(r'~\.local\bin\cswap.exe')
 CSWAP_AYAR = os.path.expanduser(r'~\.claude-swap-backup\settings.json')
 CSWAP_OTO = os.path.expanduser(r'~\.claude-swap-backup\autoswitch_state.json')
@@ -101,22 +111,6 @@ def esikler():
     return saatlik, haftalik
 
 
-def unix(iso):
-    try:
-        return datetime.fromisoformat(iso).timestamp() if iso else None
-    except (TypeError, ValueError):
-        return None
-
-
-def kayit(satir, anahtar, simdi):
-    """Kayıttaki pencere: (yüzde, sıfırlanma unix). Pencere bitmişse (0, None)."""
-    w = (satir.get('usage') or {}).get(anahtar) or {}
-    pct, r = w.get('pct'), unix(w.get('resetsAt'))
-    if r is not None and r <= simdi:
-        return 0.0, None
-    return pct, r
-
-
 def uyum(okuma, satir, simdi):
     """Okuma bu hesabın olabilir mi: çelişirse None, yoksa sıfırlanma saati eşleşen pencere sayısı."""
     eslesen = 0
@@ -180,32 +174,6 @@ def aktar(veri, satir, usage, yas):
     return kod == 0, ilk
 
 
-def hedef_sec(hesaplar, aktif, simdi, esik, h_esik, aktif_yuzde):
-    """Aktif dışındaki, iki eşiğin de altındaki en boş hesap.
-
-    Öyle hesap yoksa (hepsi eşiğin üstünde) yalnız aktif_yuzde verildiğinde (sınır hatası)
-    aktiften en az 5 puan boş, sınıra dayanmamış en boş hesap: sınıra çarpan hesapta
-    beklemektense %96'daki hesabın kalan %4'ü kullanılsın. Eşik geçişinde bu yedek yok:
-    hepsi eşiğin üstündeyken cswap auto bilerek ilk sıfırlanacak hesaba gidiyor; burada en
-    düşük yüzdeye dönmek onunla çekişip hesabı dakikada bir gidip getiriyordu (11.11 19:49-19:58,
-    8 ile 10 arasında)."""
-    en_iyi = yedek = None
-    for s in hesaplar:
-        if s is aktif or s.get('active') or s.get('disabled') or s.get('usageStatus') != 'ok':
-            continue
-        p5 = kayit(s, 'fiveHour', simdi)[0] or 0.0
-        p7 = kayit(s, 'sevenDay', simdi)[0] or 0.0
-        if p5 < esik and p7 < h_esik:
-            doluluk = max(p5 / esik, p7 / h_esik)
-            if en_iyi is None or doluluk < en_iyi[0]:
-                en_iyi = (doluluk, s)
-        elif aktif_yuzde is not None and max(p5, p7) < min(99.0, aktif_yuzde - 5) \
-                and (yedek is None or max(p5, p7) < yedek[0]):
-            yedek = (max(p5, p7), s)
-    secilen = en_iyi or yedek
-    return secilen[1] if secilen else None
-
-
 def son_gecis_zamani():
     """Bizim, cswap auto'nun ya da pencerenin son geçişi (unix)."""
     zamanlar = [json_oku(DURUM).get('zaman') or 0, json_oku(CSWAP_OTO).get('lastSwitchAt') or 0]
@@ -233,9 +201,19 @@ def gecis_yaz(satir):
         pass
 
 
+def politika():
+    """(Fable sınırı, öncelik listesi). Ayar okunamazsa geçişi kırmasın: eski davranış (Fable yok, öncelik yok)."""
+    try:
+        ayar = gecis_politika.ayar_oku()
+        return ayar['fable_esigi'], (ayar['oncelik'] if ayar['oncelik_acik'] else None)
+    except Exception:
+        return None, None
+
+
 def gec(hesaplar, aktif, simdi, neden, deneme, aktif_yuzde=None):
     esik, h_esik = esikler()
-    hedef = hedef_sec(hesaplar, aktif, simdi, esik, h_esik, aktif_yuzde)
+    fable_esik, oncelik = politika()
+    hedef = hedef_sec(hesaplar, aktif, simdi, esik, h_esik, aktif_yuzde, fable_esik, oncelik)
     zaman = time.strftime('%Y-%m-%d %H:%M:%S ')
     durum = json_oku(DURUM)
     if hedef is None:
@@ -335,12 +313,17 @@ def main():
         esik, h_esik = esikler()
         p5 = (okuma.get('five_hour') or {}).get('used_percentage')
         p7 = (okuma.get('seven_day') or {}).get('used_percentage')
+        # Fable durum satırında yok: kayıttan (cswap deposu) okunur, cswap'ın okuma sıklığı kadar gecikmeli olabilir.
+        fable_esik = politika()[0]
+        pf = gecis_politika.fable_yuzde(aktif, simdi) if aktif else None
         if p5 is not None and p5 >= esik:
             gec(hesaplar, aktif, simdi, 'kota %%%d' % p5, deneme)
         elif p7 is not None and p7 >= h_esik:
             gec(hesaplar, aktif, simdi, 'kota %%%d hafta' % p7, deneme)
+        elif fable_esik is not None and pf is not None and pf >= fable_esik:
+            gec(hesaplar, aktif, simdi, 'Fable %%%d' % pf, deneme)  # aktif_yuzde yok: yedek dal kapalı, döngü olmaz
         elif deneme:
-            yaz('eşiğin altında (5 saat %s, hafta %s)' % (p5, p7))
+            yaz('eşiğin altında (5 saat %s, hafta %s, Fable %s)' % (p5, p7, None if pf is None else int(round(pf))))
         return 0
     finally:
         if kilit:

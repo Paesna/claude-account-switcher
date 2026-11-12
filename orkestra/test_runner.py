@@ -13,6 +13,8 @@ import unittest
 
 KLASOR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, KLASOR)
+# Hermetik: kullanıcının gerçek ajanlar.json'u (panelden eklenen/gizlenen ajanlar) testleri etkilemesin.
+os.environ["ORKESTRA_AJANLAR"] = os.path.join(tempfile.gettempdir(), "orkestra-test-yok-%d" % os.getpid(), "ajanlar.json")
 
 from adapters import create_adapters  # noqa: E402
 from orchestrator import ConductorOrchestrator  # noqa: E402
@@ -145,10 +147,12 @@ class RunnerSozlesmesi(unittest.TestCase):
         self.assertEqual(k["varsayilan_sef"], "claude")
         self.assertEqual(k["varsayilan_isciler"], ["agy", "codex", "muse"])
         self.assertEqual([s["anahtar"] for s in k["saglayicilar"]], ["claude", "agy", "codex", "muse"])
+        self.assertEqual(k["gizli"], [])
         for s in k["saglayicilar"]:
-            self.assertEqual(set(s), {"anahtar", "ad", "ikon", "aciklama", "kurulu", "modeller", "efforlar",
+            self.assertEqual(set(s), {"anahtar", "ad", "ikon", "aciklama", "kurulu", "ozel", "modeller", "efforlar",
                                       "varsayilan_model", "varsayilan_effort"})
             self.assertIsInstance(s["kurulu"], bool)
+            self.assertIs(s["ozel"], False)
             self.assertTrue(s["modeller"] and set(s["modeller"][0]) == {"id", "ad", "kademe"})
 
     def _sahte_calistir(self, **spec_ek):

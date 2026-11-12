@@ -51,6 +51,10 @@ class BaseCLIAdapter:
         """Subclasses construct their specific CLI argument list with model and effort."""
         raise NotImplementedError
 
+    def temizle(self, metin: str) -> str:
+        """Çıktı parçasını canlı çıktıya ve sonuca girmeden önce süzer (varsayılan: olduğu gibi)."""
+        return metin
+
     def prepare(
         self,
         prompt: str,
@@ -126,6 +130,9 @@ class BaseCLIAdapter:
                 bekleyen = ""
 
                 def ilet(metin: str):
+                    metin = self.temizle(metin)
+                    if not metin:
+                        return
                     hedef.append(metin)
                     if on_output:
                         on_output(metin)

@@ -20,7 +20,7 @@ Açık Claude Code oturumları yeniden başlatmadan, bir sonraki mesajda yeni he
 | Parça | Ne yapar |
 |---|---|
 | **Arka plan görevi** (`cswap-auto.pyw`) | `cswap auto`'yu penceresiz ve tek kopya çalıştırır; durursa ya da 15 dakika tek satır yazmazsa (takılma) yeniden başlatır, hiçbir hatada kendisi kapanmaz. Görev Zamanlayıcı her oturum açılışında ve 5 dakikada bir yoklar: bir sebeple düşerse en geç 5 dakikada yeniden kalkar. Elle `/login` ile listede olmayan bir hesaba girerseniz onu kendiliğinden listeye ekler. |
-| **Pencere** (`arayuz.pyw` + `arayuz.html`) | Masaüstündeki **Claude hesapları** kısayolu. Tam genişlikte, **sekmeli**: Hesaplar · Haftalık yenilenme · Sıfırlama hakkı · 5 saatlik pencere · Geçişler · Hesap ekle · Orkestra (ayrıntısı aşağıda). Her hesabın 5 saatlik, haftalık ve **Fable** kullanımı, sıfırlanma saati ve durumu (Aktif / Hazır / Dolu / Durduruldu / Okunamıyor). Satırda **Geç**, **Durdur / Aç**, **Sil**, okunamayanda **Yeniden giriş**. Üstte **5 saatlik ve haftalık eşikler + Kaydet**, **En boş hesaba geç**, **+ Hesap ekle**. Sütun başlığına tıklayınca o sütuna göre sıralar, durum süzgeci vardır. Gece boyu açık kalabilir; kod güncellenince pencere kopmadan yeni koda geçer. |
+| **Pencere** (`arayuz.pyw` + `arayuz.html`) | Masaüstündeki **Claude hesapları** kısayolu. Tam genişlikte, **sekmeli**: Hesaplar · Haftalık yenilenme · Sıfırlama hakkı · 5 saatlik pencere · Geçişler · Hesap ekle · Orkestra (ayrıntısı aşağıda). Her hesabın 5 saatlik, haftalık ve **Fable** kullanımı, sıfırlanma saati ve durumu (Aktif / Hazır / Dolu / Durduruldu / Okunamıyor). Satırda **Geç**, **Durdur / Aç**, **Sil**, okunamayanda **Yeniden giriş**. Üstte **5 saatlik, haftalık ve Fable eşikleri + Kaydet**, **En boş hesaba geç** (öncelik açıkken **Sıradaki hesaba geç**), **+ Hesap ekle**. Sütun başlığına tıklayınca o sütuna göre sıralar, durum süzgeci vardır. Gece boyu açık kalabilir; kod güncellenince pencere kopmadan yeni koda geçer. |
 | **Orkestra** (`orkestra/`) | Birden çok yapay zekâ CLI'ını (Claude Code, Google Antigravity, OpenAI Codex, Meta Muse) tek hedef için çalıştırır: şef hedefi alt görevlere böler, işçilere dağıtır, sonuçları birleştirir. Panelin **Orkestra** sekmesinden yönetilir; ayrıca terminal arayüzü de durur (`py orkestra\app.py`). |
 | **5 saatlik pencereyi başlatma** (`pencere-baslat.pyw`) | Pencereden saat seçilir (örn. `08:00, 13:00`); her gün o saatte penceresi sürmeyen her hesaba Haiku ile tek kısa mesaj gider (~900 token), hesapların 5 saatlik penceresi o an başlar ve 5 saat sonra sıfırlanır. **Şimdi başlat** ile elle de çalışır. Mesaj `cswap run` ile hesabın kendi profilinden gider: aktif giriş ve açık oturumlar değişmez. Görev Zamanlayıcı'da `claude-pencere-baslat` görevi olarak durur. |
 | **Hesap ekleme** (`hesap-ekle.ps1`) | claude.ai çıkış sekmesini ve bir kutu açar; tarayıcıda o hesapla girip **Tamam** dersiniz, gerisi kendiliğinden. Giriş beklenen hesapla bitmezse kaydetmez, yeniden sorar. |
@@ -88,15 +88,62 @@ bu hook'u çalıştırır; oturum durur, hesap değişir, "devam" yazınca yeni 
 |---|---|
 | **Hesaplar** | Özet kartları (aktif hesap, hazır, dolu, haftalıkta dolu, **Fable kullanımı**, durdurulan), duruma göre süzgeç ve tüm hesapların tablosu: 5 saatlik, haftalık ve Fable çubukları, sıfırlanma saatleri. |
 | **Haftalık yenilenme** | Hesaplar yenilenme gününe göre gruplu, en yakın üstte; haftalık ve Fable çubukları. Kırmızı: haftalık eşiğin üstünde, o saate kadar geçişte kullanılmaz. Yenilenme saati bilinmeyen hesaplar listelenmez. |
+| **Öncelik** | Geçişte hedefin "en boş hesap" mı yoksa senin sıraladığın listedeki "ilk uygun hesap" mı olacağı; ▲ ▼ **En üste** ile sıralama. Aşağıda. |
 | **Sıfırlama hakkı** | Yalnız sıfırlamanın işe yaradığı dolu hesaplar (5 saatlikte dolu ya da haftalığı 1 günden uzakta dolu), en geç açılacak olan önce. **Sıfırla ↗** claude.ai Kullanım sayfasını açar; sayfada hakkı olmadığını görürsen **Hakkı yok** ile hesabı listeden kaldırırsın (altta "göster" çipiyle geri alınır). |
 | **5 saatlik pencere** | Başlatma saatleri, **Şimdi başlat** ve son başlatmanın hesap hesap sonucu. |
 | **Geçişler** | Son 40 geçiş: otomatik (eşikte, doldu), hızlı tetik ve elle. |
 | **Hesap ekle** | E-postayı yaz, tarayıcıda giriş yap; süren girişin adımı ve İptal. |
+| **Gemini** | Google Antigravity (agy) hesapları arasında geçiş ve Gemini kotası. Aşağıda. |
 | **Orkestra** | Aşağıda. |
 
 **Fable:** `cswap list`, hesabın modele özel haftalık sınırlarını (Fable) `scoped` altında veriyor; pencere onu
 Hesaplar ve Haftalık yenilenme tablolarında, özet kartında ve Orkestra'nın kota panelinde gösterir. Hesap
 değiştirme kararını etkilemez (cswap 5 saatlik ve haftalık eşiğe bakar), yalnız bilgidir.
+
+## Fable sınırı ve öncelik sırası
+
+İkisi de hesap geçişinin **ne zaman** ve **nereye** olacağını ayarlar; ayarlar `%LOCALAPPDATA%\claude-account-switcher\gecis-ayar.json`'da
+durur (depoya girmez) ve hızlı tetikle panel aynı dosyayı okur (`gecis_politika.py`; `esikte-gec.py` onu içe aktarır,
+ikisi birlikte taşınmalı).
+
+- **Fable sınırı** (üstteki üçüncü kutu, isteğe bağlı, %50-99): aktif hesabın Fable kullanımı bu yüzdeye gelince başka
+  hesaba geçilir ve Fable'ı sınırda olan hesap hedef seçilmez; panelde o hesap "Dolu · Fable sınırında" görünür, Fable
+  çubukları bu sınıra göre renklenir. cswap'ta ayrı bir Fable yüzdesi yok: bu sınır hızlı tetikte uygulanır ve Fable
+  kullanımı durum satırında olmadığından cswap'ın deposundan okunur (cswap'ın okuma sıklığı kadar, 1-3 dk gecikebilir).
+  Sınır konunca `autoswitch.model` ayarına `Fable` eklenir (cswap auto da Fable penceresini haftalık çizgiyle izler;
+  kendi eklediğin başka modellere dokunulmaz), kaldırınca geri alınır.
+- **Öncelik sırası** (Öncelik sekmesi): kip "Öncelik sırası"na alınınca eşiğe gelen hesabın yerine, listede **en öndeki
+  uygun** hesaba geçilir; uygun: iki eşiğin (varsa Fable sınırının) altında, durdurulmamış, okunabilir. Aktifin listedeki
+  yerine bakılmaz; listede olmayan hesaplar sona kalır. Öncelik hızlı tetiği, sınır hatası kancasını ve **Sıradaki hesaba
+  geç** düğmesini yönetir. Sıradaki hesap sıfırlanıp uygun olsa bile aktif hesap bir sınıra gelmedikçe ona geri dönülmez.
+- **cswap auto** (yedek yol, hızlı tetik çalışmadığında) hedefi kendi kuralıyla (boşluk) seçer ve öncelik sırasını bilmez.
+  Durum satırı betiğini kullanıyorsan geçişlerin çoğu zaten hızlı tetikle yapılır.
+
+## Gemini (agy) hesapları
+
+Birden çok Google/Gemini hesabın varsa **Gemini** sekmesinden agy'nin (Google Antigravity CLI) girişini
+hesaplar arasında değiştirebilirsin; her hesabın Gemini ve "Claude/GPT modelleri" kotası (5 saatlik ve haftalık
+kullanılan %, sıfırlanma saati) tabloda görünür. İşi `agy_hesap.py` yapar (terminalden de çalışır:
+`py agy_hesap.py durum | kota | kaydet [ad] | gec <eposta> | sil <eposta> | yeni`).
+
+- **Giriş nerede?** agy girişini Windows Kimlik Yöneticisi'nde tek kayıtta tutar (`gemini:antigravity`; token ve
+  `id_token_email`). Her hesabın girişi aynı yerde kendi adıyla saklanır (`claude-account-switcher:agy:<eposta>`,
+  Windows'un kendi korumasıyla: düz dosyada anahtar yok); **Geç** canlı kaydın yerine seçilen hesabınkini yazar ve
+  yazdığını doğrular. Ad ve son kota görüntüsü `%LOCALAPPDATA%\claude-account-switcher\agy-hesaplar.json`'da
+  (gizli bilgi yok).
+- **Önce kaydet:** Sekme, şu anki girişin kayıtlı olmadığını söylerse **Bu girişi kaydet**'e bas. Kayıtsız girişten
+  başka hesaba geçmek reddedilir, çünkü giriş kaybolurdu.
+- **Yeni hesap ekleme:** **+ Yeni Gemini hesabı ekle** önce mevcut girişi yedekler (doğrulayarak), canlı kaydı
+  kaldırır ve agy'yi argümansız açar (agy kayıt yoksa girişi başlatır). Açılan pencerede diğer hesapla giriş
+  yapınca sekmede **Bu girişi kaydet** görünür. Vazgeçersen kayıtlı hesabın yanındaki **Geç** girişi geri getirir.
+- **Geçişten önce** ayrılan hesabın kotası okunur ve agy'nin yenilediği token'lar hesabın yedeğine geri alınır
+  (yedek bayatlayıp yenileme anahtarı geçersiz kalmasın).
+- **Kota** `agy -p "/usage"`dan gelir (yaklaşık 5 sn, model çağrısı yok). Yalnız aktif hesap için okunabilir:
+  pasif hesapta son okuma gösterilir, sıfırlanma saati geçmişse "yenilendi" yazar. Sekme açıkken aktif hesabın
+  kotası 3 dakikada bir tazelenir; **Kotayı yenile** elle okur. Orkestra'nın Kota panelinde de aktif Gemini hesabı görünür.
+- **Açık agy oturumları:** Geçişten sonra onları kapatıp yeniden aç; açık bir oturum eski hesabın girişini geri
+  yazabilir. Sekme açık agy sayısını uyarı olarak gösterir.
+- Otomatik geçiş yok: Gemini kotası dolunca hesabı sen değiştirirsin.
 
 ## Orkestra
 
@@ -107,6 +154,14 @@ içerik), sonuç ve ajan başına canlı çıktı vardır. Son çalışma pencer
 CLI'lardan model listesini yeniden okur. Claude her çağrıda o an **aktif hesabı** kullanır: eşikte hesap
 kendiliğinden değişmeye devam eder, kota paneli aktif hesabın 5 saatlik, haftalık ve Fable yüzdesini gösterir.
 
+- **Ajan çıkarma ve ekleme:** Her ajan kartındaki ✕ yerleşik ajanı listeden kaldırır (gizler; **geri ekle**
+  çipiyle döner), özel ajanı siler. **+ Ajan ekle** ile başka bir CLI (örn. MiMo) ajan olarak eklenir: komut,
+  argümanlar (her satır bir argüman; `{klasor}` `{istem_dosyasi}` `{model}` `{effort}` yer tutucuları), istemin
+  dosyayla mı stdin'le mi verileceği, modeller ve akıl yürütme seviyeleri. **MiMo ön ayarı** notlardaki çağrıyı
+  doldurur. Liste `%LOCALAPPDATA%\claude-account-switcher\orkestra\ajanlar.json`'da durur (depoya girmez);
+  doğrulama ve yazma `orkestra/ozel_ajan.py`'dedir (`runner.py --ajan-ekle | --ajan-sil | --ajan-geri`). En az
+  bir ajan kalmalıdır. İstem yine argümanla geçmez; komut onay istemeden çalışacaksa gereken bayrakları argümanlara
+  sen yazarsın.
 - `orkestra/runner.py` panelin kullandığı başsız çalıştırıcıdır (stdout'a satır satır JSON olay yazar). Panel onu
   ayrı süreç olarak başlatır; **Durdur** süreç ağacını (CLI'larla birlikte) öldürür. Çalışma sürerken panel
   kendini kapatmaz ve yeni koda devretmez.
@@ -119,7 +174,8 @@ kendiliğinden değişmeye devam eder, kota paneli aktif hesabın 5 saatlik, haf
 - Model listesi `orkestra/.models_cache.json` önbelleğindedir (depoya girmez). Bu makinede önbellekteki bazı
   adlar hesaba açık olmayabilir (Codex'in ChatGPT hesabında desteklenmeyen modeller, Muse `muse-spark`):
   model hatası alırsan listeden başka model seç ya da **Modelleri tara**.
-- Testler kota yemez: `py -3 orkestra\test_runner.py`. `runner.py --calistir spec.json --sahte` gerçek CLI
+- Testler kota yemez: `py -3 orkestra\test_runner.py`, `py -3 orkestra\test_ozel_ajan.py`, `py -3 test_gecis_politika.py` ve
+  (gerçek agy girişine dokunmayan) `py -3 test_agy_hesap.py`. `runner.py --calistir spec.json --sahte` gerçek CLI
   çağırmadan sahte ajanlarla akışı uçtan uca çalıştırır.
 
 ## Bilinmesi gerekenler
@@ -172,6 +228,11 @@ kendiliğinden değişmeye devam eder, kota paneli aktif hesabın 5 saatlik, haf
   anahtar üretir; anahtarı taşımayan istek reddedilir. Tarayıcıda açık başka bir web sayfası
   yerel sunucuya istek atıp hesabınızı değiştiremez.
 - Günlükler (`*.log`) hesap e-postalarını içerir; `.gitignore` onları depo dışında tutar.
+- **Gemini girişleri** Windows Kimlik Yöneticisi'nde (DPAPI ile, yalnız bu Windows kullanıcısı okuyabilir) durur;
+  `agy-hesaplar.json` yalnız e-posta, ad ve kota görüntüsü içerir. Giriş değiştirmek agy'nin kaydını yeniden
+  yazmaktır: Windows kullanıcı hesabına erişen biri o kayıtları zaten okuyabilir, bu paket onu kötüleştirmez.
+- **Özel ajanın komutu** panelden verilir ve çalıştırılır (kabuk olmadan). Panel yalnız `127.0.0.1`'de ve oturum
+  anahtarıyla erişilebildiği için başka web sayfaları ajan ekleyemez; yine de bilmediğin bir komutu ekleme.
 - **Orkestra işçileri onay istemeden çalışır** (Codex `--dangerously-bypass-approvals-and-sandbox`, Antigravity
   `--dangerously-skip-permissions`; Muse `--approval-mode never` ile, sandbox açık). Seçtiğin **çalışma
   klasöründe** dosya değiştirebilirler; başlatırken klasör ve ajanlar bir kez daha sorulur. Klasör boş

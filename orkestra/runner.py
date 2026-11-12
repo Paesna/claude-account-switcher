@@ -4,8 +4,13 @@ Başsız orkestra çalıştırıcısı: Claude hesapları paneli (arayuz.pyw) bu
 Her olay stdout'a tek satır JSON olarak yazılır (`{"t": "...", ...}`, flush'lı); stdout'a başka bir şey
 basılmaz, hata ve traceback stderr'e gider.
 
-  runner.py --katalog [--tara]            Sağlayıcı/model/effort kataloğu (tek satır `katalog`).
+  runner.py --katalog [--tara]            Sağlayıcı/model/effort kataloğu (tek satır `katalog`; gizlenen
+                                          yerleşik ajanlar `gizli`, özel ajanlar `ozel: true`).
   runner.py --calistir spec.json [--sahte]  Bir hedefi çalıştırır. --sahte: gerçek CLI çağırmaz.
+  runner.py --ajan-ekle spec.json         Özel ajan ekler (ozel_ajan.py biçimi); tek satır `tamam` ya da `hata`.
+  runner.py --ajan-sil ANAHTAR            Özel ajanı siler / yerleşik ajanı listeden çıkarır (gizler).
+  runner.py --ajan-geri ANAHTAR           Listeden çıkarılan yerleşik ajanı geri alır.
+  Ajan ayarı: %LOCALAPPDATA%/claude-account-switcher/orkestra/ajanlar.json (ORKESTRA_AJANLAR ile değişir).
 
 spec.json: {"hedef", "sef", "model", "effort", "isciler": [...], "modeller": {anahtar: model},
             "eforlar": {anahtar: effort}, "klasor"}
@@ -46,13 +51,22 @@ def yaz(t: str, **alanlar) -> None:
     _CIKTI.flush()
 
 
+def kurulu_mu(binary: str) -> bool:
+    """PATH'te çözülebilir program adı ya da mevcut dosyanın tam yolu (özel ajanlarda yol da verilebilir)."""
+    return shutil.which(binary) is not None or os.path.isfile(binary)
+
+
 def katalog(tara: bool) -> None:
+    import ozel_ajan
     from config import get_live_providers
     from model_discovery import sync_all_models
 
     if tara:
         sync_all_models(force=True)
+    tumu = get_live_providers(include_hidden=True)
     saglayicilar = get_live_providers()
+    ozel = {s["anahtar"] for s in ozel_ajan.yukle()["ozel"]}
+    gorunen = list(saglayicilar)
     yaz(
         "katalog",
         saglayicilar=[
@@ -61,7 +75,8 @@ def katalog(tara: bool) -> None:
                 "ad": p.name,
                 "ikon": p.icon,
                 "aciklama": p.description,
-                "kurulu": shutil.which(p.binary) is not None,
+                "kurulu": kurulu_mu(p.binary),
+                "ozel": p.key in ozel,
                 "modeller": [{"id": m.id, "ad": m.name, "kademe": m.tier} for m in p.models],
                 "efforlar": list(p.efforts),
                 "varsayilan_model": p.default_model,
@@ -69,9 +84,30 @@ def katalog(tara: bool) -> None:
             }
             for p in saglayicilar.values()
         ],
-        varsayilan_sef="claude",
-        varsayilan_isciler=["agy", "codex", "muse"],
+        # Listeden çıkarılan yerleşik ajanlar: panel "geri ekle" için gösterir.
+        gizli=[{"anahtar": k, "ad": p.name} for k, p in tumu.items() if k not in saglayicilar],
+        varsayilan_sef="claude" if "claude" in saglayicilar else (gorunen[0] if gorunen else ""),
+        varsayilan_isciler=[k for k in ("agy", "codex", "muse") if k in saglayicilar],
     )
+
+
+def ajan_islemi(kip: str, arguman: str) -> None:
+    """--ajan-ekle <spec.json> | --ajan-sil <anahtar> | --ajan-geri <anahtar>: ajanlar.json'u değiştirir."""
+    import ozel_ajan
+
+    if kip == "ekle":
+        with open(arguman, encoding="utf-8-sig") as f:
+            ham = json.load(f)
+        ajan = ozel_ajan.ekle(ham)
+        yaz("tamam", anahtar=ajan["anahtar"], islem="eklendi", mesaj="%s listeye eklendi." % ajan["ad"])
+    elif kip == "sil":
+        islem = ozel_ajan.sil(arguman)
+        yaz("tamam", anahtar=arguman, islem=islem,
+            mesaj="%s listeden çıkarıldı (geri alınabilir)." % arguman if islem == "gizlendi"
+            else "%s silindi." % arguman)
+    else:
+        islem = ozel_ajan.geri_al(arguman)
+        yaz("tamam", anahtar=arguman, islem=islem, mesaj="%s listeye geri alındı." % arguman)
 
 
 def spec_oku(yol: str) -> dict:
@@ -91,7 +127,8 @@ def dogrula(spec: dict, saglayicilar: dict) -> dict:
         raise ValueError("Çalışma klasörü yok: %s" % (klasor or "(boş)"))
     klasor = os.path.abspath(klasor)
 
-    sef = str(spec.get("sef") or "claude")
+    # Şef belirtilmediyse varsayılan: claude, listeden çıkarılmışsa ilk görünen ajan.
+    sef = str(spec.get("sef") or ("claude" if "claude" in saglayicilar else next(iter(saglayicilar), "claude")))
     if sef not in saglayicilar:
         raise ValueError("Bilinmeyen şef: %s (seçenekler: %s)" % (sef, ", ".join(saglayicilar)))
     isciler = spec.get("isciler") or []
@@ -244,6 +281,9 @@ def main() -> int:
     ap.add_argument("--tara", action="store_true", help="--katalog ile: CLI'lardan modelleri yeniden tara")
     ap.add_argument("--calistir", metavar="SPEC", help="spec.json yolu")
     ap.add_argument("--sahte", action="store_true", help="--calistir ile: gerçek CLI çağırma")
+    ap.add_argument("--ajan-ekle", metavar="SPEC", help="özel ajan ekle (tek ajan nesnesi içeren spec.json)")
+    ap.add_argument("--ajan-sil", metavar="ANAHTAR", help="özel ajanı sil / yerleşik ajanı listeden çıkar")
+    ap.add_argument("--ajan-geri", metavar="ANAHTAR", help="listeden çıkarılan yerleşik ajanı geri al")
     args = ap.parse_args()
     try:
         if args.katalog:
@@ -251,7 +291,15 @@ def main() -> int:
             return 0
         if args.calistir:
             return asyncio.run(calistir(args.calistir, args.sahte))
-        ap.error("--katalog ya da --calistir gerekli")
+        for kip, deger in (("ekle", args.ajan_ekle), ("sil", args.ajan_sil), ("geri", args.ajan_geri)):
+            if deger:
+                try:
+                    ajan_islemi(kip, deger)
+                except (ValueError, OSError) as e:  # doğrulama/okuma hatası: kullanıcıya düz mesaj, traceback yok
+                    yaz("hata", mesaj=str(e))
+                    return 1
+                return 0
+        ap.error("--katalog, --calistir ya da --ajan-ekle/--ajan-sil/--ajan-geri gerekli")
     except Exception as e:
         traceback.print_exc()
         yaz("hata", mesaj="%s: %s" % (type(e).__name__, e))

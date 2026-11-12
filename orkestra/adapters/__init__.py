@@ -7,6 +7,7 @@ from .claude_adapter import ClaudeCodeAdapter
 from .agy_adapter import AntigravityAdapter
 from .codex_adapter import CodexAdapter
 from .muse_adapter import MuseCodeAdapter
+from .ozel_adapter import OzelAdapter
 
 def create_adapters(
     models_override: Optional[Dict[str, str]] = None,
@@ -14,7 +15,7 @@ def create_adapters(
 ) -> Dict[str, BaseCLIAdapter]:
     models = models_override or {}
     efforts = efforts_override or {}
-    return {
+    adapters: Dict[str, BaseCLIAdapter] = {
         "claude": ClaudeCodeAdapter(
             default_model=models.get("claude", "sonnet"),
             default_effort=efforts.get("claude", "high")
@@ -32,6 +33,16 @@ def create_adapters(
             default_effort=efforts.get("muse", "high")
         )
     }
+    # Kullanıcının eklediği özel ajanlar (ajanlar.json). Gizlenen yerleşikler de yaratılır: kullanılmazlar,
+    # ama ayar değişip geri alınırsa adaptör hazırdır. Fonksiyon içinde içe aktarma: dairesel bağ olmasın.
+    import ozel_ajan
+    for spec in ozel_ajan.yukle()["ozel"]:
+        adapters[spec["anahtar"]] = OzelAdapter(
+            spec,
+            default_model=models.get(spec["anahtar"]),
+            default_effort=efforts.get(spec["anahtar"]),
+        )
+    return adapters
 
 __all__ = [
     "BaseCLIAdapter",
@@ -39,5 +50,6 @@ __all__ = [
     "AntigravityAdapter",
     "CodexAdapter",
     "MuseCodeAdapter",
+    "OzelAdapter",
     "create_adapters"
 ]

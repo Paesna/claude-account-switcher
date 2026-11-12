@@ -34,6 +34,10 @@ from urllib.parse import parse_qs, urlparse
 DEVIR = os.environ.pop('ARAYUZ_DEVIR', '').split()
 KAYNAK = os.path.abspath(__file__)
 KLASOR = os.path.dirname(KAYNAK)
+if KLASOR not in sys.path:
+    sys.path.insert(0, KLASOR)
+import agy_hesap  # noqa: E402  Gemini (agy) hesap geçişi ve kotası
+import gecis_politika  # noqa: E402  Fable sınırı ve öncelik sırası (ayar dosyası + hedef seçimi; hızlı tetikle ortak)
 SAYFA = os.path.join(KLASOR, 'arayuz.html')
 ACIK_DOSYASI = os.path.join(KLASOR, 'arayuz.acik.json')
 LOG = os.path.join(KLASOR, 'arayuz.log')
@@ -190,10 +194,22 @@ def hak_yok_oku():
     return {str(e).lower() for e in ham} if isinstance(ham, list) else set()
 
 
+def oncelik_sirasi(hesaplar_ham, listelenen):
+    """Öncelik sırası: ayardakiler (e-posta) kendi sırasıyla, listede olmayanlar hesap numarasına göre sonda.
+    E-posta listesi verir; tam sıra her zaman bütün hesapları kapsar."""
+    var = {h['email'].lower(): h for h in hesaplar_ham}
+    sira = [e for e in listelenen if e in var]
+    sira += [h['email'].lower() for h in sorted(hesaplar_ham, key=lambda h: h['number']) if h['email'].lower() not in sira]
+    return sira
+
+
 def hesaplar(esik, haftalik_esik=None):
     veri = cswap_liste()
     simdi = datetime.now(timezone.utc)
     hak_yok = hak_yok_oku()
+    ayar = gecis_politika.ayar_oku()
+    fable_esik = ayar['fable_esigi']
+    oncelik_no = {e: i + 1 for i, e in enumerate(oncelik_sirasi(veri['accounts'], ayar['oncelik']))}
     satirlar = []
     for a in veri['accounts']:
         u = a.get('usage') or {}
@@ -215,22 +231,26 @@ def hesaplar(esik, haftalik_esik=None):
         # Haftalık eşik boşsa cswap haftalık pencerede de 5 saatlik eşiği kullanıyor.
         h_sinir = haftalik_esik if haftalik_esik is not None else esik
         haftalik_dolu = h_yuzde is not None and h_yuzde >= h_sinir
+        kapsam = kapsamlar(u, simdi)
+        fable = next((k for k in kapsam if k['ad'].lower() == 'fable'), None)
+        # Fable sınırı (ayrı yüzde, isteğe bağlı): geçişte hedef sayılmaz, kullanıcı için "dolu" gibi davranır.
+        fable_dolu = bool(fable_esik is not None and fable and fable['yuzde'] is not None
+                          and fable['yuzde'] >= fable_esik)
+        f_sifir = datetime.fromisoformat(fable['sifirlanma']) if fable and fable['sifirlanma'] else None
         # Dolu hesap ne zaman yeniden kullanılabilir: haftalıkta doluysa 5 saatlik sıfırlansa da
-        # açılmaz, haftalık sıfırlanmayı bekler; ikisi de doluysa geç olanı.
-        acilma = max((t for t, dolu in ((sifir, saatlik_dolu), (h_sifir, haftalik_dolu)) if dolu and t),
-                     default=None)
+        # açılmaz, haftalık sıfırlanmayı bekler; birden çoğu doluysa en geç olanı.
+        acilma = max((t for t, dolu in ((sifir, saatlik_dolu), (h_sifir, haftalik_dolu), (f_sifir, fable_dolu))
+                      if dolu and t), default=None)
         if a.get('active'):
             durum = 'aktif'
         elif a.get('disabled'):
             durum = 'durduruldu'
         elif a.get('usageStatus') != 'ok' or yuzde is None:
             durum = 'okunamiyor'
-        elif saatlik_dolu or haftalik_dolu:
+        elif saatlik_dolu or haftalik_dolu or fable_dolu:
             durum = 'dolu'
         else:
             durum = 'hazir'
-        kapsam = kapsamlar(u, simdi)
-        fable = next((k for k in kapsam if k['ad'].lower() == 'fable'), None)
         satir = {
             'no': a['number'], 'eposta': a['email'], 'ad': ad(a['email']),
             'kurum': a.get('organizationName') or '', 'durum': durum,
@@ -244,6 +264,8 @@ def hesaplar(esik, haftalik_esik=None):
             'acilma': acilma.isoformat() if acilma else None,
             'saatlik_dolu': saatlik_dolu,
             'haftalik_dolu': haftalik_dolu,
+            'fable_dolu': fable_dolu,
+            'oncelik': oncelik_no[a['email'].lower()],
             'hata': a.get('usageError') or '',
         }
         satir['hak_yok'] = a['email'].lower() in hak_yok
@@ -333,7 +355,8 @@ def gecisler(adlar):
                 m = ELLE.search(s)
                 if m and kayit[1]:
                     elle = m.group(1) == 'elle'
-                    neden = 'elle' if elle else ('sınır hatası' if 'sınır' in m.group(1) else 'hızlı tetik')
+                    neden = 'elle' if elle else ('sınır hatası' if 'sınır' in m.group(1)
+                                                 else 'Fable sınırı' if 'Fable' in m.group(1) else 'hızlı tetik')
                     _olay({'zaman': kayit[1], 'kime': ad(m.group(3)),
                            'neden': neden, 'tur': 'elle' if elle else 'hizli'})
         olaylar = sorted(_olaylar.values(), key=lambda o: o['zaman'], reverse=True)
@@ -381,10 +404,21 @@ def durum():
         ek['sure_dk'] = int((time.time() - ek.get('basladi', time.time())) // 60)
     with kilit:
         sifirlama = {k: v for k, v in sira.items() if k != 'iptal'}
-    return {'esik': esik, 'haftalik_esik': haftalik_esik, 'gorev': gorev_calisiyor(), 'hesaplar': liste,
+    ayar = gecis_politika.ayar_oku()
+    return {'esik': esik, 'haftalik_esik': haftalik_esik, 'fable_esik': ayar['fable_esigi'],
+            'oncelik_acik': ayar['oncelik_acik'], 'gorev': gorev_calisiyor(), 'hesaplar': liste,
             'gecisler': gecisler({h['no']: h['ad'] for h in liste}), 'ekleme': ek, 'sifirlama': sifirlama,
-            'pencere': pencere_durumu(), 'orkestra': orkestra_ozet(),
+            'pencere': pencere_durumu(), 'orkestra': orkestra_ozet(), 'agy': agy_durumu(),
             'saat': datetime.now().astimezone().isoformat(), 'sayfa': sayfa_surumu()}
+
+
+def agy_durumu():
+    """Gemini (agy) hesapları. Okunamazsa bütün durum bozulmasın: hata sekmede yazar."""
+    try:
+        return agy_hesap.durum()
+    except Exception as e:
+        log('agy durumu okunamadi: ' + traceback.format_exc())
+        return {'hata': str(e), 'kurulu': True, 'canli_var': False, 'hesaplar': [], 'acik_agy': 0}
 
 
 def no_al(govde):
@@ -410,12 +444,47 @@ def gec(govde):
 
 
 def en_iyi(_):
+    ayar = gecis_politika.ayar_oku()
+    if ayar['oncelik_acik'] and ayar['oncelik']:
+        # Öncelik kipi: hızlı tetikle aynı seçim (iki eşiğin ve Fable sınırının altındaki, sırada ilk hesap).
+        veri = cswap_liste(taze=True)
+        esik, haftalik_esik = esik_oku()
+        aktif = next((a for a in veri['accounts'] if a.get('active')), None)
+        hedef = gecis_politika.hedef_sec(veri['accounts'], aktif, time.time(), float(esik),
+                                         float(haftalik_esik if haftalik_esik is not None else esik), None,
+                                         ayar['fable_esigi'], ayar['oncelik'])
+        if hedef is None:
+            raise ValueError('Öncelik sırasında geçilecek uygun hesap yok (hepsi eşiğin üstünde, durdurulmuş ya da okunamıyor).')
+        kod, cikti, hata = cswap('switch', str(hedef['number']))
+        satir = ilk_satir(cikti, hata)
+        if kod != 0:
+            raise RuntimeError('Geçilemedi: ' + satir)
+        gecisi_yaz(satir)
+        return 'Öncelik sırasındaki ilk uygun hesaba geçildi: %s.' % ad(hedef['email'])
     kod, cikti, hata = cswap('switch', '--strategy', 'best')
     satir = ilk_satir(cikti, hata)
     if kod != 0:
         raise RuntimeError('Geçilemedi: ' + satir)
     gecisi_yaz(satir)
     return 'En boş hesaba geçildi.'
+
+
+def oncelik_kaydet(govde):
+    """Öncelik sırası (e-posta listesi) ve kipi: açıkken eşiğe gelince sıradaki ilk uygun hesaba geçilir."""
+    liste = govde.get('sira')
+    if not isinstance(liste, list):
+        raise ValueError('Öncelik listesi eksik.')
+    bilinen = {a['email'].lower() for a in cswap_liste()['accounts']}
+    ayar = gecis_politika.ayar_oku()
+    ayar['oncelik'] = [str(e).lower() for e in liste if str(e).lower() in bilinen]
+    ayar['oncelik_acik'] = bool(govde.get('acik'))
+    try:
+        gecis_politika.ayar_yaz(ayar)
+    except ValueError as e:
+        raise ValueError(str(e))
+    if ayar['oncelik_acik']:
+        return 'Öncelik sırası kaydedildi ve açık: eşiğe gelince sıradaki ilk uygun hesaba geçilir.'
+    return 'Öncelik sırası kaydedildi (kapalı: geçişte en boş hesap seçilir).'
 
 
 def durdur(govde):
@@ -450,6 +519,22 @@ def esik_kaydet(govde):
         if not 50 <= haftalik_yuzde <= 99:
             raise ValueError('Haftalık eşik 50 ile 99 arasında olmalı (veya boş bırakılmalı).')
 
+    fable_ham = govde.get('fable_yuzde')
+    fable_yuzde = None
+    if fable_ham is not None and str(fable_ham).strip() != '':
+        try:
+            fable_yuzde = int(fable_ham)
+        except (TypeError, ValueError):
+            raise ValueError('Fable sınırı bir sayı olmalı.')
+        if not 50 <= fable_yuzde <= 99:
+            raise ValueError('Fable sınırı 50 ile 99 arasında olmalı (veya boş bırakılmalı).')
+
+    # Fable sınırı bu deponun ayarında (cswap'ta ayrı bir Fable yüzdesi yok); hızlı tetik ve pencere okur.
+    ayar = gecis_politika.ayar_oku()
+    ayar['fable_esigi'] = float(fable_yuzde) if fable_yuzde is not None else None
+    gecis_politika.ayar_yaz(ayar)
+    cswap_fable_izleme(fable_yuzde is not None)
+
     kod, cikti, hata = cswap('config', 'set', 'autoswitch.threshold', str(yuzde))
     if kod != 0:
         raise RuntimeError('5 saatlik eşik kaydedilemedi: ' + ilk_satir(hata, cikti))
@@ -477,9 +562,30 @@ def esik_kaydet(govde):
         except Exception:
             pass
     gorevi_yeniden_baslat()
-    if haftalik_yuzde is not None:
-        return 'Eşikler (5 saatlik: %%%d, haftalık: %%%d) kaydedildi, otomatik geçiş yeniden başlatıldı.' % (yuzde, haftalik_yuzde)
-    return '5 saatlik eşik %%%d kaydedildi (haftalık sınır yok), otomatik geçiş yeniden başlatıldı.' % yuzde
+    parcalar = ['5 saatlik: %%%d' % yuzde, ('haftalık: %%%d' % haftalik_yuzde) if haftalik_yuzde is not None
+                else 'haftalık: 5 saatlikle aynı']
+    parcalar.append(('Fable: %%%d' % fable_yuzde) if fable_yuzde is not None else 'Fable: sınır yok')
+    return 'Eşikler (%s) kaydedildi, otomatik geçiş yeniden başlatıldı.' % ', '.join(parcalar)
+
+
+def cswap_fable_izleme(acik):
+    """Fable sınırı varken cswap auto da Fable penceresini izlesin (autoswitch.model, haftalık çizgiyle): cswap'ın
+    hedef seçimi Fable'ı dolmak üzere hesaplara inmesin. Kullanıcının kendi model ayarına (Opus vb.) dokunulmaz."""
+    kod, cikti, _ = cswap('config', 'get', 'autoswitch.model', '--json', zaman=30)
+    try:
+        mevcut = json.loads(cikti).get('value') or ''
+    except ValueError:
+        return
+    adlar = [x.strip() for x in str(mevcut).split(',') if x.strip()]
+    izleniyor = any(x.lower() in ('fable', 'all') for x in adlar)
+    if acik and not izleniyor:
+        cswap('config', 'set', 'autoswitch.model', ','.join(adlar + ['Fable']), zaman=30)
+    elif not acik and any(x.lower() == 'fable' for x in adlar):
+        kalan = [x for x in adlar if x.lower() != 'fable']
+        if kalan:
+            cswap('config', 'set', 'autoswitch.model', ','.join(kalan), zaman=30)
+        else:
+            cswap('config', 'unset', 'autoswitch.model', zaman=30)
 
 
 EKLEME_LOG = os.path.join(KLASOR, 'ekleme.log')
@@ -842,6 +948,7 @@ ORKESTRA_KLASOR = os.path.join(KLASOR, 'orkestra')
 ORKESTRA_VERI = os.path.join(PENCERE_VERI, 'orkestra')
 ORKESTRA_SON = os.path.join(ORKESTRA_VERI, 'son-calisma.json')
 ORKESTRA_HATA = os.path.join(ORKESTRA_VERI, 'runner.err')
+ORKESTRA_AJANLAR = os.path.join(ORKESTRA_VERI, 'ajanlar.json')  # çıkarılan yerleşik ve eklenen özel ajanlar
 ORKESTRA_BOS_KLASOR = os.path.join(ORKESTRA_VERI, 'calisma')  # klasör seçilmezse: boş, projeye dokunmaz
 ORKESTRA_AKIM_SINIRI = 200_000   # ajan başına bellekte tutulan canlı çıktı (karakter)
 ORKESTRA_KAYIT_SINIRI = 30_000   # kayda yazılan mesaj içeriği ve canlı çıktı sonu (karakter)
@@ -864,7 +971,9 @@ ork = ork_bos()
 
 
 def ork_ortam():
-    return {k: v for k, v in ORTAM.items() if k not in ORKESTRA_TEMIZLE}
+    ortam = {k: v for k, v in ORTAM.items() if k not in ORKESTRA_TEMIZLE}
+    ortam['ORKESTRA_AJANLAR'] = ORKESTRA_AJANLAR  # runner ajan listesini buradan okur
+    return ortam
 
 
 def ork_komut(*arg):
@@ -1053,6 +1162,47 @@ def orkestra_katalog(tara=False):
     return veri
 
 
+def ork_ajan_islemi(*arg):
+    """runner.py --ajan-ekle/--ajan-sil/--ajan-geri: ajan listesini tek yerden (orkestra/ozel_ajan.py) değiştirir;
+    doğrulama da orada. Çalışan bir orkestra etkilenmez (listeyi başlarken okumuştur)."""
+    r = subprocess.run(ork_komut(*arg), capture_output=True, text=True, encoding='utf-8', errors='replace',
+                       env=ork_ortam(), cwd=ORKESTRA_KLASOR, creationflags=CREATE_NO_WINDOW, timeout=60)
+    satir = next((s for s in r.stdout.splitlines() if s.startswith('{')), '')
+    try:
+        o = json.loads(satir)
+    except ValueError:
+        raise RuntimeError('Ajan işlemi okunamadı: %s' % (ilk_satir(r.stderr, r.stdout) or 'kod %s' % r.returncode))
+    if o.get('t') != 'tamam':
+        raise ValueError(o.get('mesaj') or 'Ajan işlemi olmadı.')
+    _katalog['veri'] = None  # liste değişti: sayfa kataloğu yeniden okusun
+    return o.get('mesaj') or 'Tamam.'
+
+
+def orkestra_ajan_ekle(govde):
+    ajan = govde.get('ajan')
+    if not isinstance(ajan, dict):
+        raise ValueError('Ajan bilgisi eksik.')
+    os.makedirs(ORKESTRA_VERI, exist_ok=True)
+    yol = os.path.join(ORKESTRA_VERI, 'ajan-spec.json')
+    json_yaz(yol, ajan)
+    return ork_ajan_islemi('--ajan-ekle', yol)
+
+
+def orkestra_ajan_anahtari(govde):
+    anahtar = str(govde.get('anahtar') or '')
+    if not ORKESTRA_AD.match(anahtar):
+        raise ValueError('Geçersiz ajan anahtarı.')
+    return anahtar
+
+
+def orkestra_ajan_sil(govde):
+    return ork_ajan_islemi('--ajan-sil', orkestra_ajan_anahtari(govde))
+
+
+def orkestra_ajan_geri(govde):
+    return ork_ajan_islemi('--ajan-geri', orkestra_ajan_anahtari(govde))
+
+
 def orkestra_tara(_):
     veri = orkestra_katalog(tara=True)
     return 'Modeller CLI\'lardan yeniden tarandı (%d sağlayıcı).' % len(veri.get('saglayicilar') or [])
@@ -1097,11 +1247,43 @@ except Exception:
     log('orkestra kaydi okunamadi: ' + traceback.format_exc())
 
 
+# Gemini (agy) hesapları: işi agy_hesap.py yapar (Kimlik Yöneticisi'ndeki agy girişini hesaplar arasında değiştirir).
+def agy_gec(govde):
+    return agy_hesap.gec(govde.get('eposta'), bool(govde.get('zorla')))
+
+
+def agy_kaydet(govde):
+    return agy_hesap.kaydet(govde.get('ad'))
+
+
+def agy_sil(govde):
+    return agy_hesap.sil(govde.get('eposta'))
+
+
+def agy_kota(_):
+    agy_hesap.kota_oku()  # ~5 sn; sonuç hesabın kaydına işlenir, sayfa sonraki yoklamada görür
+    return 'Gemini kotası okundu.'
+
+
+def agy_yeni(_):
+    return agy_hesap.yeni_hesap()
+
+
+def agy_ac(_):
+    agy_hesap.agy_ac()
+    return 'agy açıldı: giriş ekranında Gemini hesabıyla giriş yap.'
+
+
 ISLEMLER = {'gec': gec, 'en-iyi': en_iyi, 'durdur': durdur, 'ac': ac, 'esik': esik_kaydet, 'ekle': ekle,
+            'oncelik-kaydet': oncelik_kaydet,
+            'agy-gec': agy_gec, 'agy-kaydet': agy_kaydet, 'agy-sil': agy_sil, 'agy-kota': agy_kota,
+            'agy-yeni': agy_yeni, 'agy-ac': agy_ac,
             'ekle-iptal': ekle_iptal, 'sil': sil, 'kapandi': kapandi, 'claude-ai': claude_ai,
             'sifirla-sira': sifirla_sira, 'sifirla-iptal': sifirla_iptal, 'sifirlama-hak': sifirlama_hak,
             'pencere-kaydet': pencere_kaydet, 'pencere-simdi': pencere_simdi,
-            'orkestra-baslat': orkestra_baslat, 'orkestra-iptal': orkestra_iptal, 'orkestra-tara': orkestra_tara}
+            'orkestra-baslat': orkestra_baslat, 'orkestra-iptal': orkestra_iptal, 'orkestra-tara': orkestra_tara,
+            'orkestra-ajan-ekle': orkestra_ajan_ekle, 'orkestra-ajan-sil': orkestra_ajan_sil,
+            'orkestra-ajan-geri': orkestra_ajan_geri}
 
 
 class Isleyici(BaseHTTPRequestHandler):

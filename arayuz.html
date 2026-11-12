@@ -73,6 +73,7 @@ button.sekme[aria-selected="true"] .sayi { background: var(--yuzey); color: var(
 .bildirim { border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; font-weight: 500; }
 .bildirim.iyi { background: var(--yesil-acik); color: var(--yesil); }
 .bildirim.kotu { background: var(--kirmizi-acik); color: var(--kirmizi); }
+.uyari { border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; font-weight: 500; background: var(--sari-acik); color: var(--sari); }
 
 .ozet { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin-bottom: 16px; }
 .kart { background: var(--yuzey); border: 1px solid var(--cizgi); border-radius: 12px; padding: 12px 14px; box-shadow: var(--golge); }
@@ -204,6 +205,23 @@ pre.cikti { margin: 8px 0 0; max-height: 380px; overflow: auto; white-space: pre
   border-radius: 8px; padding: 10px 12px; }
 pre.sonuc { max-height: 520px; font-size: 13px; }
 .alt-sekmeler { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; }
+.ork-form { display: grid; gap: 10px; margin-top: 10px; }
+.ork-form label { display: grid; gap: 3px; font-size: 11px; color: var(--soluk); text-transform: uppercase; letter-spacing: .04em; }
+.ork-form input, .ork-form textarea, .ork-form select { width: 100%; font-size: 13px; text-transform: none; letter-spacing: 0; }
+.ork-form textarea { font-family: "Cascadia Mono", Consolas, monospace; line-height: 1.45; resize: vertical; }
+.ork-form-satir { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; }
+button.ajan-sil { padding: 1px 7px; line-height: 1.3; }
+code { font: 12px "Cascadia Mono", Consolas, monospace; background: var(--gri-acik); border-radius: 4px; padding: 0 4px; }
+.secim-grubu { display: grid; gap: 8px; }
+label.secim { display: flex; align-items: flex-start; gap: 10px; border: 1px solid var(--cizgi); border-radius: 10px; padding: 10px 12px;
+  background: var(--yuzey-2); cursor: pointer; }
+label.secim:has(input:checked) { border-color: var(--vurgu); background: var(--vurgu-acik); }
+label.secim input { margin-top: 3px; }
+label.secim small { display: block; color: var(--soluk); font-size: 12px; margin-top: 1px; }
+.sira-kontrol { display: inline-flex; gap: 4px; }
+.sira-kontrol button { padding: 3px 9px; }
+tr.sirada td { background: var(--yesil-acik); }
+tr.sirada td:first-child { box-shadow: inset 3px 0 0 var(--yesil); }
 .baslik-satir { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
 .baslik-satir h2 { margin: 0; }
 .dar-tablo { max-width: 900px; }
@@ -224,6 +242,9 @@ footer { color: var(--soluk); font-size: 12px; margin-top: 18px; }
         <span class="esik-ayrac">·</span>
         <label for="haftalikEsik" title="Haftalık kullanım eşiği (isteğe bağlı, boş bırakılırsa haftalık sınır aranmaz)">Haftalık %</label>
         <input id="haftalikEsik" type="number" min="50" max="99" step="1" placeholder="—" title="Haftalık kota bu yüzdeye gelince en boş hesaba geçilir (boş bırakılabilir)">
+        <span class="esik-ayrac">·</span>
+        <label for="fableEsik" title="Fable kullanım sınırı (isteğe bağlı, boş bırakılırsa Fable için ayrı sınır aranmaz)">Fable %</label>
+        <input id="fableEsik" type="number" min="50" max="99" step="1" placeholder="—" title="Aktif hesabın Fable kullanımı bu yüzdeye gelince başka hesaba geçilir; Fable'ı bu yüzdenin altındaki hesaplara geçilir (boş bırakılabilir)">
         <button type="submit" class="ana kucuk">Kaydet</button>
       </form>
       <button id="ekleGit">+ Hesap ekle</button>
@@ -235,10 +256,12 @@ footer { color: var(--soluk); font-size: 12px; margin-top: 18px; }
   <nav class="sekmeler" role="tablist" aria-label="Bölümler" id="sekmeler">
     <button type="button" class="sekme" role="tab" id="t-hesaplar" data-sekme="hesaplar" aria-controls="s-hesaplar">Hesaplar<span class="sayi" id="sayi-hesaplar"></span></button>
     <button type="button" class="sekme" role="tab" id="t-yenilenme" data-sekme="yenilenme" aria-controls="s-yenilenme">Haftalık yenilenme<span class="sayi" id="sayi-yenilenme"></span></button>
+    <button type="button" class="sekme" role="tab" id="t-oncelik" data-sekme="oncelik" aria-controls="s-oncelik">Öncelik<span class="sayi" id="sayi-oncelik"></span></button>
     <button type="button" class="sekme" role="tab" id="t-sifirlama" data-sekme="sifirlama" aria-controls="s-sifirlama">Sıfırlama hakkı<span class="sayi" id="sayi-sifirlama"></span></button>
     <button type="button" class="sekme" role="tab" id="t-pencere" data-sekme="pencere" aria-controls="s-pencere">5 saatlik pencere<span class="sayi" id="sayi-pencere"></span></button>
     <button type="button" class="sekme" role="tab" id="t-gecisler" data-sekme="gecisler" aria-controls="s-gecisler">Geçişler</button>
     <button type="button" class="sekme" role="tab" id="t-ekle" data-sekme="ekle" aria-controls="s-ekle">Hesap ekle<span class="sayi" id="sayi-ekle"></span></button>
+    <button type="button" class="sekme" role="tab" id="t-gemini" data-sekme="gemini" aria-controls="s-gemini">Gemini<span class="sayi" id="sayi-gemini"></span></button>
     <button type="button" class="sekme" role="tab" id="t-orkestra" data-sekme="orkestra" aria-controls="s-orkestra">Orkestra<span class="sayi" id="sayi-orkestra"></span></button>
   </nav>
 
@@ -277,6 +300,29 @@ footer { color: var(--soluk); font-size: 12px; margin-top: 18px; }
       </table>
     </section>
     <p class="ipucu" id="yenilenmeNot"></p>
+  </section>
+
+  <!-- 2b. Öncelik sırası -->
+  <section id="s-oncelik" role="tabpanel" aria-labelledby="t-oncelik" hidden>
+    <section class="panel ic" style="margin-bottom:16px">
+      <h2>Geçişte hangi hesap seçilsin?</h2>
+      <div class="secim-grubu" role="radiogroup" aria-label="Geçiş hedefi">
+        <label class="secim"><input type="radio" name="oncelikKipi" id="oncelikKipBos" value="bos">
+          <span><b>En boş hesap</b><small>Hesap eşiğe gelince en çok boşluğu olan hesaba geçilir (varsayılan).</small></span></label>
+        <label class="secim"><input type="radio" name="oncelikKipi" id="oncelikKipSira" value="sira">
+          <span><b>Öncelik sırası</b><small>Hesap eşiğe gelince aşağıdaki sırada <b>ilk uygun</b> hesaba geçilir; sıra boşluktan önemlidir.</small></span></label>
+      </div>
+      <p class="ipucu" id="oncelikSiradaki" style="margin-top:10px"></p>
+    </section>
+    <section class="panel tablo-kap">
+      <table>
+        <thead><tr>
+          <th>Sıra</th><th>Hesap</th><th>Durum</th><th>5 saatlik</th><th class="haftalik">Haftalık</th><th class="fable-th">Fable</th><th></th>
+        </tr></thead>
+        <tbody id="oncelik"></tbody>
+      </table>
+    </section>
+    <p class="ipucu"><b>Uygun hesap:</b> 5 saatlik ve haftalık eşiğin (varsa Fable sınırının da) altında, durdurulmamış ve okunabilir olan. Öncelik, eşiğe gelince hedefi seçer (hızlı tetik, sınır hatası ve "Sıradaki hesaba geç"); sıradaki hesap uygun olunca ona kendiliğinden dönülmez. cswap'ın kendi otomatik geçişi (yedek yol) öncelik sırasını bilmez, en boş hesabı seçer.</p>
   </section>
 
   <!-- 3. Sıfırlama hakkı -->
@@ -345,7 +391,43 @@ footer { color: var(--soluk); font-size: 12px; margin-top: 18px; }
     </section>
   </section>
 
-  <!-- 7. Orkestra -->
+  <!-- 7. Gemini (agy) hesapları -->
+  <section id="s-gemini" role="tabpanel" aria-labelledby="t-gemini" hidden>
+    <div id="agyUyari"></div>
+    <section class="panel ic" id="agyCanli" style="margin-bottom:16px">
+      <h2 id="agyCanliBaslik">Şu anki agy girişi</h2>
+      <p id="agyCanliMetin" style="margin:0"></p>
+      <form id="agyKaydetForm" class="ekle" style="margin-top:10px;max-width:560px" hidden>
+        <input id="agyAd" type="text" placeholder="Ad (isteğe bağlı, örn. Kişisel)" maxlength="40" autocomplete="off" aria-label="Hesap adı">
+        <button type="submit" class="ana">Bu girişi kaydet</button>
+      </form>
+      <div class="eylemler" style="margin:10px 0 0">
+        <button id="agyAcDugme" class="ana" type="button" hidden>agy'yi aç (giriş yap)</button>
+      </div>
+    </section>
+    <section class="panel tablo-kap">
+      <table>
+        <thead><tr>
+          <th>Hesap</th><th>Durum</th><th>Gemini · 5 saatlik</th><th>Gemini · haftalık</th>
+          <th>Claude/GPT · 5 saatlik</th><th>Claude/GPT · haftalık</th><th>Kota okuması</th><th></th>
+        </tr></thead>
+        <tbody id="agyHesaplar"></tbody>
+      </table>
+    </section>
+    <div class="eylemler" style="margin-top:12px">
+      <button id="agyKota" type="button">Kotayı yenile</button>
+      <button id="agyYeni" class="ana" type="button">+ Yeni Gemini hesabı ekle</button>
+    </div>
+    <details class="nasil">
+      <summary>Nasıl çalışır?</summary>
+      <p>agy girişini Windows Kimlik Yöneticisi'nde tek bir kayıtta tutar. Her Gemini hesabının girişi burada ayrı bir kayıt olarak (Windows'un kendi korumasıyla, düz dosya yok) saklanır; <b>Geç</b> aktif girişin yerine seçtiğin hesabınkini yazar. Geçmeden önce ayrılan hesabın agy'nin yenilediği anahtarları yedeğine geri alınır.</p>
+      <p><b>Yeni hesap ekleme:</b> mevcut giriş yedeklenir, agy'den çıkılır ve agy açılır; açılan pencerede diğer Gemini hesabıyla giriş yaparsın, sonra bu sekmede "Bu girişi kaydet" görünür. Vazgeçersen kayıtlı hesabın yanındaki Geç'e basman yeter.</p>
+      <p><b>Kota</b> aktif hesap için agy'nin <code>/usage</code> komutundan okunur (yaklaşık 5 sn) ve her hesabın kaydına işlenir. Etkin olmayan hesabın kotası okunamaz: son okuması gösterilir (geçişten önce ve kaydederken okunur); sıfırlanma saati geçmişse "yenilendi" görünür.</p>
+      <p>Geçişten sonra açık agy oturumlarını kapatıp yeniden aç: açık bir oturum eski hesabın girişini geri yazabilir.</p>
+    </details>
+  </section>
+
+  <!-- 8. Orkestra -->
   <section id="s-orkestra" role="tabpanel" aria-labelledby="t-orkestra" hidden>
     <div class="ork-duzen">
       <div class="ork-sol">
@@ -386,13 +468,48 @@ footer { color: var(--soluk); font-size: 12px; margin-top: 18px; }
       </div>
       <aside class="ork-sag">
         <section class="panel ic">
-          <div class="baslik-satir"><h2>Ajanlar</h2><button class="kucuk" id="orkTara" type="button"
-            title="CLI'lardan model ve akıl yürütme listesini yeniden okur (yarım dakika sürebilir)">Modelleri tara</button></div>
+          <div class="baslik-satir"><h2>Ajanlar</h2><span style="display:flex;gap:6px">
+            <button class="kucuk" id="orkAjanEkleDugme" type="button" title="Başka bir CLI'ı ajan olarak ekle">+ Ajan ekle</button>
+            <button class="kucuk" id="orkTara" type="button"
+              title="CLI'lardan model ve akıl yürütme listesini yeniden okur (yarım dakika sürebilir)">Modelleri tara</button></span></div>
           <div id="orkAjanlar"><p class="ipucu" style="margin:0">Yükleniyor…</p></div>
-          <p class="ipucu">Her ajan için "Şef" ya da "İşçi" seç. Şef planı yapar ve sentezler, işçiler alt görevleri yürütür.</p>
+          <div id="orkGizli" class="gizli-liste" hidden></div>
+          <details id="orkAjanEkle" class="nasil" style="margin-top:12px">
+            <summary>Özel ajan ekle (başka bir CLI)</summary>
+            <form id="orkOzelForm" class="ork-form">
+              <div class="ork-form-satir">
+                <label>Ad<input id="orkOzelAd" type="text" maxlength="40" required placeholder="Xiaomi MiMo" autocomplete="off"></label>
+                <label>Anahtar<input id="orkOzelAnahtar" type="text" maxlength="20" required placeholder="mimo" autocomplete="off"
+                  pattern="[a-z][a-z0-9_\-]{1,19}" title="küçük harf, rakam, - ve _; harfle başlar, 2-20 karakter"></label>
+              </div>
+              <label>Komut<input id="orkOzelKomut" type="text" required placeholder="mimo.exe ya da tam yol" autocomplete="off"></label>
+              <label>Argümanlar (her satır bir argüman)<textarea id="orkOzelArg" rows="6" spellcheck="false"
+                placeholder="run&#10;--dir&#10;{klasor}&#10;Ekteki istemi uygula.&#10;-f&#10;{istem_dosyasi}"></textarea></label>
+              <div class="ork-form-satir">
+                <label>İstem nasıl verilir<select id="orkOzelIstem"><option value="dosya">Dosya ({istem_dosyasi})</option><option value="stdin">stdin</option></select></label>
+                <label>Model argümanı<input id="orkOzelModelArg" type="text" placeholder="-m {model}" autocomplete="off"></label>
+                <label>Akıl yürütme argümanı<input id="orkOzelEffortArg" type="text" placeholder="--variant {effort}" autocomplete="off"></label>
+              </div>
+              <div class="ork-form-satir">
+                <label>Modeller (virgülle)<input id="orkOzelModeller" type="text" placeholder="a/model-1, a/model-2" autocomplete="off"></label>
+                <label>Varsayılan model<input id="orkOzelVarModel" type="text" autocomplete="off"></label>
+              </div>
+              <div class="ork-form-satir">
+                <label>Seviyeler (virgülle)<input id="orkOzelEforlar" type="text" placeholder="high, max" autocomplete="off"></label>
+                <label>Varsayılan seviye<input id="orkOzelVarEffort" type="text" autocomplete="off"></label>
+              </div>
+              <p class="ipucu" style="margin:0">Yer tutucular: <code>{klasor}</code> <code>{istem_dosyasi}</code> <code>{model}</code> <code>{effort}</code>. İstem komut satırından geçmez: dosyayla ya da stdin'le verilir (<code>.cmd</code> kabuğu çok satırlı metni bozar ve komut enjeksiyonuna açıktır). Komut onay istemeden çalışacaksa gereken bayrakları argümanlara kendin yaz.</p>
+              <div class="eylemler" style="margin:0">
+                <button type="submit" class="ana">Ekle</button>
+                <button type="button" id="orkMimo" title="Notlarındaki MiMo çağrısını forma doldurur">MiMo ön ayarı</button>
+                <button type="button" id="orkOzelTemizle">Temizle</button>
+              </div>
+            </form>
+          </details>
+          <p class="ipucu">Her ajan için "Şef" ya da "İşçi" seç. Şef planı yapar ve sentezler, işçiler alt görevleri yürütür. ✕ ajanı listeden kaldırır; kaldırılanlar "geri ekle" ile döner.</p>
         </section>
         <section class="panel ic">
-          <h2>Claude kotası</h2>
+          <h2>Kota</h2>
           <div id="orkKota"></div>
         </section>
       </aside>
@@ -405,7 +522,7 @@ footer { color: var(--soluk); font-size: 12px; margin-top: 18px; }
 <script>
 const ANAHTAR = new URLSearchParams(location.search).get('k');
 const DURUM_ADI = { aktif: 'Aktif', hazir: 'Hazır', dolu: 'Dolu', durduruldu: 'Durduruldu', okunamiyor: 'Okunamıyor' };
-const SEKMELER = ['hesaplar', 'yenilenme', 'sifirlama', 'pencere', 'gecisler', 'ekle', 'orkestra'];
+const SEKMELER = ['hesaplar', 'yenilenme', 'oncelik', 'sifirlama', 'pencere', 'gecisler', 'ekle', 'gemini', 'orkestra'];
 let veri = null;
 let mesgul = false;
 
@@ -509,6 +626,7 @@ function sekmeSec(ad, odakla) {
   if (odakla) $('t-' + ad).focus();
   try { localStorage.setItem('sekme', ad); history.replaceState(null, '', '#' + ad); } catch { /* hatırlanmasa da çalışır */ }
   if (ad === 'orkestra') orkAc(); else clearTimeout(ork.zamanlayici);
+  if (ad === 'gemini' && veri) agyCiz(veri);  // sekme açılınca aktif hesabın kotası bayatsa hemen okunur
 }
 
 $('sekmeler').addEventListener('click', ev => {
@@ -595,9 +713,10 @@ function olcu(y, sinif, ekstra) {
 }
 
 // Eşiklere göre renk: 5 saatlik eşiğe 15 puan, haftalık eşiğe 10 puan kala sarı. Haftalık eşik boşsa
-// cswap haftalıkta da 5 saatlik eşiği kullanıyor. Fable de haftalık sınır gibi değerlendirilir.
+// cswap haftalıkta da 5 saatlik eşiği kullanıyor. Fable'ın kendi sınırı varsa o, yoksa haftalık sınır geçerli.
 function esikler(v) {
-  return { saatlik: v.esik, haftalik: v.haftalik_esik != null ? v.haftalik_esik : v.esik };
+  const haftalik = v.haftalik_esik != null ? v.haftalik_esik : v.esik;
+  return { saatlik: v.esik, haftalik, fable: v.fable_esik != null ? v.fable_esik : haftalik };
 }
 const sinifla = (y, sinir, pay) => (y == null ? '' : y >= sinir ? 'dolu' : y >= sinir - pay ? 'yakin' : '');
 
@@ -679,12 +798,13 @@ function hesapTablosuCiz(v) {
         ? el('td', { class: 'haftalik' }, gunSaat(h.haftalik_sifirlanma), el('small', {}, kalan(h.haftalik_sifirlanma)))
         : el('td', { class: 'haftalik' }, '—'));
     }
-    if (fableVar) hucreler.push(el('td', { class: 'fable', title: kapsamIpucu(h) }, olcu(h.fable, sinifla(h.fable, e.haftalik, 10), 'fable')));
+    if (fableVar) hucreler.push(el('td', { class: 'fable', title: kapsamIpucu(h) }, olcu(h.fable, sinifla(h.fable, e.fable, 10), 'fable')));
     return el('tr', { class: h.durum },
       el('td', { class: 'no' }, String(h.no)),
-      el('td', { class: 'hesap' }, el('b', {}, h.ad), el('small', {}, h.kurum)),
+      el('td', { class: 'hesap' }, el('b', {}, h.ad), el('small', {}, h.kurum + (v.oncelik_acik ? ' · öncelik ' + h.oncelik : ''))),
       kullanim, sifir, ...hucreler,
-      el('td', {}, el('span', { class: 'rozet ' + h.durum }, DURUM_ADI[h.durum])),
+      el('td', {}, el('span', { class: 'rozet ' + h.durum }, DURUM_ADI[h.durum]),
+        h.fable_dolu ? el('small', {}, 'Fable sınırında') : null),
       el('td', { class: 'islem' },
         // Okunamayan hesabın girişi çoğunlukla ölmüştür; tek tıkla yeniden giriş.
         // Durdurulmuş hesabın da kullanımı okunamıyor olabilir; düğme durumdan değil hatadan çıkar.
@@ -735,9 +855,9 @@ function yenilenmeCiz(v) {
       el('td', { class: 'sifir' }, kalan(h.haftalik_sifirlanma)),
       el('td', { class: 'hesap' }, el('b', {}, h.ad), el('small', {}, h.kurum)),
       el('td', { class: 'haftalik' }, olcu(h.haftalik, sinifla(h.haftalik, e.haftalik, 10))),
-      fableVar ? el('td', { class: 'fable', title: kapsamIpucu(h) }, olcu(h.fable, sinifla(h.fable, e.haftalik, 10), 'fable')) : null,
-      el('td', {}, el('span', { class: 'rozet ' + (h.durduruldu ? 'durduruldu' : dolu ? 'dolu' : 'hazir') },
-        h.durduruldu ? 'Durduruldu' : dolu ? 'Eşikte: kullanılmaz' : 'Kullanılabilir'))));
+      fableVar ? el('td', { class: 'fable', title: kapsamIpucu(h) }, olcu(h.fable, sinifla(h.fable, e.fable, 10), 'fable')) : null,
+      el('td', {}, el('span', { class: 'rozet ' + (h.durduruldu ? 'durduruldu' : dolu ? 'dolu' : h.fable_dolu ? 'okunamiyor' : 'hazir') },
+        h.durduruldu ? 'Durduruldu' : dolu ? 'Eşikte: kullanılmaz' : h.fable_dolu ? 'Fable sınırında' : 'Kullanılabilir'))));
   }
   $('yenilenme').replaceChildren(...(govde.length ? govde
     : [el('tr', {}, el('td', { colspan: 6, class: 'bos' }, 'Haftalık yenilenme saati bilinen hesap yok.'))]));
@@ -788,7 +908,7 @@ function sifirlamaCiz(v) {
     el('td', {}, sifirlaNeden(h)),
     el('td', { class: 'sifir' }, h.acilma ? gunSaat(h.acilma) : '—', el('small', {}, h.acilma ? kalan(h.acilma) : '')),
     haftalikVar ? el('td', { class: 'haftalik' }, olcu(h.haftalik, sinifla(h.haftalik, e.haftalik, 10))) : null,
-    fableVar ? el('td', { class: 'fable', title: kapsamIpucu(h) }, olcu(h.fable, sinifla(h.fable, e.haftalik, 10), 'fable')) : null,
+    fableVar ? el('td', { class: 'fable', title: kapsamIpucu(h) }, olcu(h.fable, sinifla(h.fable, e.fable, 10), 'fable')) : null,
     el('td', { class: 'islem' },
       el('button', { class: 'kucuk ana', disabled: mesgul, title: 'Hesabın claude.ai Kullanım sayfasını kendi penceresinde açar',
         onclick: () => islem('claude-ai', { no: h.no }, h.ad + ' claude.ai\'da açılıyor…') }, 'Sıfırla ↗'),
@@ -880,6 +1000,168 @@ function eklemeCiz(v) {
   sayi('ekle', suruyor ? '…' : 0, 'dikkat');
 }
 
+// ── Öncelik sırası ─────────────────────────────────────────────────────────────────────────────
+// Sıra ve kip sunucuda (gecis_politika.py, hızlı tetikle ortak). Açıkken eşiğe gelince "en boş" yerine sıradaki
+// ilk uygun hesaba geçilir. Uygun: eşiklerin (ve Fable sınırının) altında, durdurulmamış, okunabilir ("hazir").
+function oncelikTasi(sira, nereden, nereye) {
+  const yeni = [...sira];
+  const [h] = yeni.splice(nereden, 1);
+  yeni.splice(nereye, 0, h);
+  return islem('oncelik-kaydet', { sira: yeni.map(x => x.eposta), acik: Boolean(veri.oncelik_acik) },
+    h.ad + ' ' + (nereye + 1) + '. sıraya taşınıyor…');
+}
+
+function oncelikCiz(v) {
+  const acik = Boolean(v.oncelik_acik);
+  $('oncelikKipBos').checked = !acik;
+  $('oncelikKipSira').checked = acik;
+  const sira = [...v.hesaplar].sort((a, b) => a.oncelik - b.oncelik);
+  const e = esikler(v);
+  const fableVar = v.hesaplar.some(h => h.fable != null);
+  const haftalikVar = v.hesaplar.some(h => h.haftalik != null);
+  document.querySelectorAll('#s-oncelik th.fable-th').forEach(t => { t.hidden = !fableVar; });
+  document.querySelectorAll('#s-oncelik th.haftalik').forEach(t => { t.hidden = !haftalikVar; });
+  const siradaki = acik ? sira.find(h => !h.aktif && h.durum === 'hazir') : null;
+  $('oncelikSiradaki').textContent = acik
+    ? (siradaki ? 'Eşiğe gelince geçilecek hesap: ' + siradaki.ad + ' (sırada ' + siradaki.oncelik + '.)'
+      : 'Şu an geçilecek uygun hesap yok.')
+    : 'Öncelik sırası kapalı: sıra burada saklanır, geçişte en boş hesap seçilir.';
+  $('oncelik').replaceChildren(...sira.map((h, i) => el('tr', { class: (h.aktif ? 'aktif ' : '') + (siradaki === h ? 'sirada' : '') },
+    el('td', { class: 'no' }, String(h.oncelik)),
+    el('td', { class: 'hesap' }, el('b', {}, h.ad), el('small', {}, h.kurum)),
+    el('td', {}, el('span', { class: 'rozet ' + h.durum }, DURUM_ADI[h.durum]),
+      siradaki === h ? el('small', {}, 'sıradaki hedef') : (h.fable_dolu ? el('small', {}, 'Fable sınırında') : null)),
+    el('td', {}, olcu(h.yuzde, sinifla(h.yuzde, e.saatlik, 15))),
+    haftalikVar ? el('td', { class: 'haftalik' }, olcu(h.haftalik, sinifla(h.haftalik, e.haftalik, 10))) : null,
+    fableVar ? el('td', { class: 'fable', title: kapsamIpucu(h) }, olcu(h.fable, sinifla(h.fable, e.fable, 10), 'fable')) : null,
+    el('td', { class: 'islem' }, el('span', { class: 'sira-kontrol' },
+      el('button', { class: 'kucuk', disabled: i === 0 || mesgul, title: 'Bir sıra yukarı', 'aria-label': h.ad + ' bir sıra yukarı',
+        onclick: () => oncelikTasi(sira, i, i - 1) }, '▲'),
+      el('button', { class: 'kucuk', disabled: i === sira.length - 1 || mesgul, title: 'Bir sıra aşağı', 'aria-label': h.ad + ' bir sıra aşağı',
+        onclick: () => oncelikTasi(sira, i, i + 1) }, '▼'),
+      el('button', { class: 'kucuk', disabled: i === 0 || mesgul, title: 'En üste al', 'aria-label': h.ad + ' en üste',
+        onclick: () => oncelikTasi(sira, i, 0) }, 'En üste'))))));
+}
+
+for (const id of ['oncelikKipBos', 'oncelikKipSira']) {
+  $(id).addEventListener('change', () => {
+    if (!veri || !$(id).checked) return;
+    const sira = [...veri.hesaplar].sort((a, b) => a.oncelik - b.oncelik).map(h => h.eposta);
+    islem('oncelik-kaydet', { sira, acik: id === 'oncelikKipSira' },
+      id === 'oncelikKipSira' ? 'Öncelik sırası açılıyor…' : 'En boş hesap kipine dönülüyor…');
+  });
+}
+
+// ── Gemini (agy) hesapları ─────────────────────────────────────────────────────────────────────
+// agy_hesap.py: agy girişi Windows Kimlik Yöneticisi'nde; hesaplar kendi kayıtlarıyla saklanır, Geç canlı
+// kaydın yerine seçileni yazar. Kota `agy -p "/usage"`dan (kalan %; burada kullanılan % gösterilir).
+const agyKota = { suruyor: false, deneme: 0 };
+const agyGrup = (h, onek) => (h.kota || []).find(g => g.ad && g.ad.startsWith(onek)) || {};
+
+function onceki(iso) {
+  const dk = Math.round((Date.now() - Date.parse(iso)) / 60000);
+  if (dk < 1) return 'az önce';
+  if (dk < 60) return dk + ' dk önce';
+  if (dk < 1440) return Math.floor(dk / 60) + ' sa önce';
+  return Math.floor(dk / 1440) + ' gün önce';
+}
+
+function agyOlcu(p) {  // p: {kalan, sifirlanma, yenilendi}
+  if (!p || p.kalan == null) return el('div', { class: 'olcu yok' }, '—');
+  const k = 100 - p.kalan, sinif = sinifla(k, 90, 15);
+  return el('div', { class: 'olcu' },
+    el('div', { class: 'cubuk ' + sinif }, el('span', { style: '--y:' + k + '%' })),
+    el('span', { class: 'yuzde ' + sinif }, '%' + k + ' kullanıldı',
+      el('small', {}, p.yenilendi ? 'yenilendi' : (p.sifirlanma ? kalan(p.sifirlanma) : ''))));
+}
+
+async function agyKotaYenile(elle) {
+  if (agyKota.suruyor) return;
+  agyKota.suruyor = true;
+  agyKota.deneme = Date.now();
+  const d = $('agyKota');
+  d.disabled = true;
+  d.textContent = 'Okunuyor (~5 sn)…';
+  try {
+    await api('/api/agy-kota', {});
+    if (elle) bildir('Gemini kotası okundu.', true);
+  } catch (e) {
+    if (elle) bildir('Gemini kotası okunamadı: ' + e.message, false);
+  } finally {
+    agyKota.suruyor = false;
+    d.disabled = false;
+    d.textContent = 'Kotayı yenile';
+    yukle(true);
+  }
+}
+
+function agyCiz(v) {
+  const a = v.agy || {};
+  const hesaplar = a.hesaplar || [];
+  const aktif = hesaplar.find(h => h.aktif);
+
+  const uyar = [];
+  if (a.hata) uyar.push(el('div', { class: 'bildirim kotu' }, 'Gemini hesapları okunamadı: ' + a.hata));
+  else if (a.kurulu === false) uyar.push(el('div', { class: 'bildirim kotu' }, 'agy bulunamadı (PATH\'te agy.exe yok): Gemini hesap geçişi için agy kurulu olmalı.'));
+  if (a.acik_agy > 0) uyar.push(el('div', { class: 'uyari' }, a.acik_agy + ' açık agy oturumu var: geçişten ya da çıkıştan sonra onları kapatıp yeniden aç, yoksa eski hesabın girişini geri yazabilirler.'));
+  $('agyUyari').replaceChildren(...uyar);
+
+  // Şu anki giriş kartı (form statik: yazılan ad yoklamada ezilmez)
+  const metin = $('agyCanliMetin');
+  const kayitsiz = a.canli_var && !a.canli_gecersiz && !a.canli_kayitli;
+  $('agyKaydetForm').hidden = !kayitsiz;
+  $('agyAcDugme').hidden = a.canli_var || a.canli_gecersiz || a.kurulu === false;
+  $('agyCanliBaslik').textContent = kayitsiz ? 'Şu anki agy girişi kayıtlı değil' : 'Şu anki agy girişi';
+  if (a.canli_gecersiz) metin.textContent = 'agy giriş kaydı tanınmadı (beklenen biçimde değil).';
+  else if (!a.canli_var) metin.textContent = 'agy\'de giriş yok. agy\'yi açıp Gemini hesabıyla giriş yap ya da kayıtlı bir hesaba geç.';
+  else if (kayitsiz) metin.textContent = a.canli_eposta + ': başka hesaba geçersen bu giriş kaybolur. Kaydet.';
+  else metin.textContent = (aktif ? aktif.ad + ' · ' : '') + a.canli_eposta;
+  document.querySelector('#agyKaydetForm button').disabled = mesgul;
+  $('agyAcDugme').disabled = mesgul;
+  $('agyYeni').disabled = mesgul || a.kurulu === false || Boolean(a.hata);
+
+  $('agyHesaplar').replaceChildren(...(hesaplar.length ? hesaplar.map(h => {
+    const g = agyGrup(h, 'Gemini'), c = agyGrup(h, 'Claude');
+    return el('tr', { class: h.aktif ? 'aktif' : '' },
+      el('td', { class: 'hesap' }, el('b', {}, h.ad), el('small', {}, h.eposta)),
+      el('td', {}, el('span', { class: 'rozet ' + (h.aktif ? 'aktif' : 'hazir') }, h.aktif ? 'Aktif' : 'Kayıtlı')),
+      el('td', {}, agyOlcu(g.bes_saat)), el('td', {}, agyOlcu(g.haftalik)),
+      el('td', {}, agyOlcu(c.bes_saat)), el('td', {}, agyOlcu(c.haftalik)),
+      el('td', { class: 'sifir' }, h.kota_zamani ? onceki(h.kota_zamani) : 'okunmadı',
+        el('small', {}, h.aktif ? '' : 'pasifken okunamaz')),
+      el('td', { class: 'islem' },
+        el('button', { class: 'kucuk', disabled: h.aktif || mesgul, title: 'agy girişini bu hesapla değiştir',
+          onclick: () => {
+            if (confirm('agy ' + h.ad + ' hesabına geçsin mi?' + (a.acik_agy > 0
+                ? '\n\n' + a.acik_agy + ' açık agy oturumu var: geçişten sonra onları kapatıp yeniden aç.' : '')))
+              islem('agy-gec', { eposta: h.eposta }, h.ad + ' hesabına geçiliyor (kota okunuyor, ~5 sn)…');
+          } }, 'Geç'),
+        el('button', { class: 'kucuk tehlike', disabled: mesgul, title: 'Kayıtlı girişi sil (agy\'deki giriş etkilenmez)',
+          onclick: () => {
+            if (confirm(h.ad + ' kaydı silinsin mi?\n\nKayıtlı girişi silinir; geri eklemek için agy\'de o hesapla giriş yapıp "Bu girişi kaydet" demen gerekir.'))
+              islem('agy-sil', { eposta: h.eposta }, h.ad + ' siliniyor…');
+          } }, 'Sil')));
+  }) : [el('tr', {}, el('td', { colspan: 8, class: 'bos' },
+    'Kayıtlı Gemini hesabı yok. Şu anki girişi kaydet ya da yeni hesap ekle.'))]));
+
+  sayi('gemini', kayitsiz ? '!' : hesaplar.length, kayitsiz ? 'dikkat' : '');
+  // Aktif hesabın kotası 3 dakikadan eskiyse (ya da hiç okunmadıysa) sekme açıkken kendiliğinden okunur.
+  if (sekme === 'gemini' && aktif && !agyKota.suruyor && !a.hata && Date.now() - agyKota.deneme > 60000 &&
+      (!aktif.kota_zamani || Date.now() - Date.parse(aktif.kota_zamani) > 180000)) agyKotaYenile(false);
+}
+
+$('agyKaydetForm').addEventListener('submit', async ev => {
+  ev.preventDefault();
+  if (await islem('agy-kaydet', { ad: $('agyAd').value.trim() }, 'Gemini girişi kaydediliyor (kota okunuyor, ~5 sn)…')) $('agyAd').value = '';
+});
+$('agyAcDugme').addEventListener('click', () => islem('agy-ac', {}, 'agy açılıyor…'));
+$('agyKota').addEventListener('click', () => agyKotaYenile(true));
+$('agyYeni').addEventListener('click', () => {
+  if (confirm('Yeni Gemini hesabı eklensin mi?\n\nMevcut agy girişi yedeklenir ve agy\'den çıkılır; açılan agy penceresinde diğer hesapla giriş yaparsın. ' +
+      'Vazgeçersen kayıtlı hesabın yanındaki Geç\'e bas.'))
+    islem('agy-yeni', {}, 'Giriş yedekleniyor, agy açılıyor…');
+});
+
 function ciz() {
   const v = veri;
   // Yazılmış ama kaydedilmemiş eşik yoklamada ezilmesin: önceden yalnız odaktaki kutu
@@ -888,27 +1170,35 @@ function ciz() {
   if (!esikDegisti) {
     $('esik').value = v.esik;
     $('haftalikEsik').value = v.haftalik_esik != null ? v.haftalik_esik : '';
+    $('fableEsik').value = v.fable_esik != null ? v.fable_esik : '';
   }
   const gorev = $('gorev');
   if (v.gorev) {
     gorev.textContent = 'Otomatik geçiş çalışıyor · eşikler: 5 saat %' + v.esik +
-      (v.haftalik_esik != null ? ' · haftalık %' + v.haftalik_esik : ' · haftalık: 5 saatlikle aynı');
+      (v.haftalik_esik != null ? ' · haftalık %' + v.haftalik_esik : ' · haftalık: 5 saatlikle aynı') +
+      (v.fable_esik != null ? ' · Fable %' + v.fable_esik : '') +
+      (v.oncelik_acik ? ' · öncelik sırası açık' : '');
   } else {
     gorev.textContent = 'Otomatik geçiş çalışmıyor';
   }
   gorev.classList.toggle('kapali', !v.gorev);
+  $('enIyi').textContent = v.oncelik_acik ? 'Sıradaki hesaba geç' : 'En boş hesaba geç';
+  $('enIyi').title = v.oncelik_acik ? 'Öncelik sırasındaki ilk uygun hesaba geç' : 'En çok boşluğu olan hesaba geç';
 
   ozetCiz(v);
   hesapTablosuCiz(v);
   yenilenmeCiz(v);
+  oncelikCiz(v);
   sifirlamaCiz(v);
   pencereCiz(v.pencere || {}, mesgul);
   gecislerCiz(v);
   eklemeCiz(v);
+  agyCiz(v);
   orkKotaCiz(v);
 
   sayi('hesaplar', v.hesaplar.length);
   sayi('yenilenme', v.hesaplar.filter(h => h.haftalik_sifirlanma).length);
+  sayi('oncelik', v.oncelik_acik ? '●' : 0, 'canli');
   sayi('sifirlama', v.hesaplar.filter(h => h.sifirlanabilir).length, 'dikkat');
   sayi('pencere', (v.pencere || {}).calisiyor ? '…' : ((v.pencere || {}).saatler || []).length, (v.pencere || {}).calisiyor ? 'canli' : '');
   const od = (v.orkestra || {}).durum;
@@ -999,9 +1289,18 @@ function orkFormKur() {
     return el('div', { class: 'ajan-kart' + (p.kurulu ? '' : ' yok'), 'data-k': p.anahtar },
       el('div', { class: 'ajan-ust' },
         el('b', {}, p.ikon + ' ' + p.ad),
+        p.ozel ? el('span', { class: 'rozet mor' }, 'özel') : null,
         p.kurulu ? null : el('span', { class: 'rozet okunamiyor', title: 'Bu CLI PATH\'te bulunamadı' }, 'kurulu değil'),
         el('label', { class: 'rol' }, el('input', { type: 'radio', name: 'orkSef', value: p.anahtar, checked: p.anahtar === sef }), 'Şef'),
-        el('label', { class: 'rol' }, el('input', { type: 'checkbox', class: 'orkIsci', 'data-k': p.anahtar, checked: isciler.includes(p.anahtar) }), 'İşçi')),
+        el('label', { class: 'rol' }, el('input', { type: 'checkbox', class: 'orkIsci', 'data-k': p.anahtar, checked: isciler.includes(p.anahtar) }), 'İşçi'),
+        el('button', { type: 'button', class: 'kucuk tehlike ajan-sil', disabled: kat.saglayicilar.length <= 1,
+          title: p.ozel ? 'Ajanı sil' : 'Listeden kaldır ("geri ekle" ile döner)',
+          'aria-label': p.ad + ' ajanını kaldır',
+          onclick: async () => {
+            if (!confirm(p.ozel ? p.ad + ' ajanı silinsin mi?\n\nKomut ve argüman bilgileri silinir.'
+                : p.ad + ' listeden kaldırılsın mı?\n\nGeri eklemek için Ajanlar altındaki "geri ekle" düğmesine basarsın.')) return;
+            if (await islem('orkestra-ajan-sil', { anahtar: p.anahtar }, p.ad + ' kaldırılıyor…')) await orkKatalogYukle();
+          } }, '✕')),
       el('div', { class: 'ajan-alt' },
         el('label', {}, 'Model', el('select', { class: 'orkModel', 'data-k': p.anahtar },
           ...p.modeller.map(m => el('option', { value: m.id, selected: m.id === (model || p.varsayilan_model), title: m.ad }, m.id + ' · ' + m.kademe)))),
@@ -1009,9 +1308,87 @@ function orkFormKur() {
           ...p.efforlar.map(f => el('option', { value: f, selected: f === (effort || p.varsayilan_effort) }, f))))));
   });
   $('orkAjanlar').replaceChildren(...kartlar);
+  const gizli = kat.gizli || [];
+  const g = $('orkGizli');
+  g.hidden = !gizli.length;
+  g.replaceChildren(...(gizli.length ? [el('span', {}, 'Kaldırılan:'), ...gizli.map(x =>
+    el('button', { type: 'button', class: 'cip kucuk', title: 'Ajanı listeye geri al',
+      onclick: async () => { if (await islem('orkestra-ajan-geri', { anahtar: x.anahtar }, x.ad + ' geri ekleniyor…')) await orkKatalogYukle(); } },
+      x.ad + ' · geri ekle'))] : []));
   orkRolleriDenkle();
   orkAkimSekmeleriCiz();
+  orkYenidenCiz();
 }
+
+// Katalog yüklendi ya da değişti (ajan eklendi/çıkarıldı): plan ve yazışmadaki ajan adları değişebilir, önbellek bırakılır.
+function orkYenidenCiz() {
+  ork.planImza = '';
+  ork.mesajDom.clear();
+  $('orkMesajlar').replaceChildren();
+  if (ork.son) orkCiz();
+}
+
+// Özel ajan formu (yerleşik 4 dışında başka bir CLI). Doğrulama sunucuda/orkestra/ozel_ajan.py'de.
+const MIMO_ONAYARI = {
+  anahtar: 'mimo', ad: 'Xiaomi MiMo', komut: 'mimo.exe',
+  argumanlar: ['run', '--dir', '{klasor}', 'Ekteki istemi uygula.', '-f', '{istem_dosyasi}'],
+  model_arg: ['-m', '{model}'], effort_arg: ['--variant', '{effort}'], istem: 'dosya',
+  modeller: ['xiaomi/mimo-v2.6-flash', 'xiaomi/mimo-v2.6-pro', 'xiaomi/mimo-v2.6-pro-ultraspeed', 'mimo/mimo-auto'],
+  efforlar: ['high', 'max', 'minimal'], varsayilan_model: 'xiaomi/mimo-v2.6-flash', varsayilan_effort: 'high',
+};
+
+function anahtarUret(ad) {
+  const k = ad.toLowerCase().replace(/ı/g, 'i').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 20);
+  return /^[0-9]/.test(k) ? ('a' + k).slice(0, 20) : k;
+}
+
+function orkOzelDoldur(a) {
+  const yaz = (id, d) => { $('orkOzel' + id).value = d; };
+  yaz('Ad', a.ad || ''); yaz('Anahtar', a.anahtar || ''); yaz('Komut', a.komut || '');
+  yaz('Arg', (a.argumanlar || []).join('\n'));
+  yaz('ModelArg', (a.model_arg || []).join(' ')); yaz('EffortArg', (a.effort_arg || []).join(' '));
+  yaz('Modeller', (a.modeller || []).join(', ')); yaz('VarModel', a.varsayilan_model || '');
+  yaz('Eforlar', (a.efforlar || []).join(', ')); yaz('VarEffort', a.varsayilan_effort || '');
+  $('orkOzelIstem').value = a.istem || 'dosya';
+  $('orkOzelAnahtar').dataset.elle = a.anahtar ? '1' : '';
+}
+
+function orkOzelSpec() {
+  const v = id => $('orkOzel' + id).value.trim();
+  const liste = s => s.split(',').map(x => x.trim()).filter(Boolean);
+  const parcala = s => s.split(/\s+/).filter(Boolean);
+  const a = { anahtar: v('Anahtar'), ad: v('Ad'), komut: v('Komut'), istem: $('orkOzelIstem').value,
+    argumanlar: $('orkOzelArg').value.split(/\r?\n/).map(x => x.trim()).filter(Boolean) };
+  if (v('ModelArg')) a.model_arg = parcala(v('ModelArg'));
+  if (v('EffortArg')) a.effort_arg = parcala(v('EffortArg'));
+  if (v('Modeller')) a.modeller = liste(v('Modeller'));
+  if (v('Eforlar')) a.efforlar = liste(v('Eforlar'));
+  if (v('VarModel')) a.varsayilan_model = v('VarModel');
+  if (v('VarEffort')) a.varsayilan_effort = v('VarEffort');
+  return a;
+}
+
+$('orkAjanEkleDugme').addEventListener('click', () => {
+  const d = $('orkAjanEkle');
+  d.open = !d.open;
+  if (d.open) { d.scrollIntoView({ block: 'nearest' }); $('orkOzelAd').focus(); }
+});
+$('orkOzelAd').addEventListener('input', () => {
+  const k = $('orkOzelAnahtar');
+  if (!k.dataset.elle) k.value = anahtarUret($('orkOzelAd').value);  // elle yazılmadıkça addan türet
+});
+$('orkOzelAnahtar').addEventListener('input', () => { $('orkOzelAnahtar').dataset.elle = $('orkOzelAnahtar').value ? '1' : ''; });
+$('orkMimo').addEventListener('click', () => orkOzelDoldur(MIMO_ONAYARI));
+$('orkOzelTemizle').addEventListener('click', () => orkOzelDoldur({}));
+$('orkOzelForm').addEventListener('submit', async ev => {
+  ev.preventDefault();
+  if (await islem('orkestra-ajan-ekle', { ajan: orkOzelSpec() }, 'Ajan ekleniyor…')) {
+    orkOzelDoldur({});
+    $('orkAjanEkle').open = false;
+    await orkKatalogYukle();
+  }
+});
 
 // Şef aynı anda işçi olamaz.
 function orkRolleriDenkle() {
@@ -1233,25 +1610,38 @@ function orkAkimCiz() {
 function orkKotaCiz(v) {
   const a = v.hesaplar.find(h => h.aktif);
   const hazir = v.hesaplar.filter(h => h.durum === 'hazir').length;
-  if (!a) { $('orkKota').replaceChildren(el('p', { class: 'ipucu', style: 'margin:0' }, 'Aktif hesap yok.')); return; }
+  if (!a) { $('orkKota').replaceChildren(el('p', { class: 'ipucu', style: 'margin:0' }, 'Aktif Claude hesabı yok.')); return; }
   const e = esikler(v);
   const satir = (ad, y, sinir, pay, ekstra) => el('div', { class: 'kota-satir' }, el('span', {}, ad),
     el('div', { class: 'cubuk ' + (ekstra || '') + ' ' + sinifla(y, sinir, pay) }, el('span', { style: '--y:' + Math.min(y || 0, 100) + '%' })),
     el('span', {}, y == null ? '—' : '%' + y));
   const yakin = a.yuzde != null && a.yuzde >= e.saatlik - 10;
+  // Gemini (agy) aktif hesabı: kota agy'den, kalan % olarak gelir; burada kullanılan % gösterilir.
+  const ag = v.agy || {};
+  const agAktif = (ag.hesaplar || []).find(h => h.aktif);
+  const gg = agAktif ? agyGrup(agAktif, 'Gemini') : {};
+  const kul = p => (p && p.kalan != null ? 100 - p.kalan : null);
+  const geminiBolumu = ag.kurulu === false ? [] : [
+    el('div', { style: 'margin-top:14px' }, 'Gemini (agy) hesabı: ', agAktif ? el('b', {}, agAktif.ad)
+      : el('span', { class: 'neden' }, ag.canli_var ? 'kayıtlı değil (Gemini sekmesi)' : 'giriş yok')),
+    agAktif ? satir('5 saatlik', kul(gg.bes_saat), 90, 15) : null,
+    agAktif ? satir('Haftalık', kul(gg.haftalik), 90, 15) : null,
+    agAktif && agAktif.kota_zamani ? el('p', { class: 'ipucu' }, 'Gemini kotası okundu: ' + onceki(agAktif.kota_zamani) + '. Hesap değiştirmek için Gemini sekmesi.') : null,
+  ];
   $('orkKota').replaceChildren(...[
-    el('div', {}, 'Aktif hesap: ', el('b', {}, a.ad)),
+    el('div', {}, 'Claude hesabı: ', el('b', {}, a.ad)),
     satir('5 saatlik', a.yuzde, e.saatlik, 15),
     satir('Haftalık', a.haftalik, e.haftalik, 10),
-    a.fable != null ? satir('Fable', a.fable, e.haftalik, 10, 'fable') : null,
+    a.fable != null ? satir('Fable', a.fable, e.fable, 10, 'fable') : null,
     el('p', { class: 'ipucu' }, 'Claude şef ya da işçi her çağrıda o an aktif hesabı kullanır; eşiğe gelince otomatik geçiş sürer. ' +
       hazir + ' hazır hesap var.' + (yakin ? ' Aktif hesap eşiğe yakın: uzun çalışmada hesap değişebilir.' : '') +
       ' "fable" modeli Fable haftalık kotasından yer.'),
+    ...geminiBolumu,
   ].filter(Boolean));  // replaceChildren null'u "null" yazısı olarak basar
 }
 
 // ── Olaylar ────────────────────────────────────────────────────────────────────────────────────
-for (const id of ['esik', 'haftalikEsik']) {
+for (const id of ['esik', 'haftalikEsik', 'fableEsik']) {
   const kutu = $(id);
   kutu.addEventListener('input', () => { esikDegisti = true; });
   // Esc: yazılanı bırak, kayıtlı eşiklere dön.
@@ -1263,10 +1653,12 @@ $('esikForm').addEventListener('submit', async ev => {
   ev.preventDefault();
   const kutu = $('esik');
   const hKutu = $('haftalikEsik');
-  const hVal = hKutu.value.trim();
+  const fKutu = $('fableEsik');
+  const hVal = hKutu.value.trim(), fVal = fKutu.value.trim();
   const govde = {
     yuzde: Number(kutu.value),
     haftalik_yuzde: hVal ? Number(hVal) : null,
+    fable_yuzde: fVal ? Number(fVal) : null,
   };
   if (await islem('esik', govde, 'Eşikler kaydediliyor…')) {
     // Kutular artık sunucudan gelen kayıtlı değeri göstersin; kaydedilmediyse yazılan kalır.
@@ -1274,6 +1666,7 @@ $('esikForm').addEventListener('submit', async ev => {
     if (veri) ciz();
     kutu.blur();
     hKutu.blur();
+    fKutu.blur();
   }
 });
 const pencereSaat = $('pencereSaat');

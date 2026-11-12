@@ -19,7 +19,7 @@ Açık Claude Code oturumları yeniden başlatmadan, bir sonraki mesajda yeni he
 
 | Parça | Ne yapar |
 |---|---|
-| **Arka plan görevi** (`cswap-auto.pyw`) | `cswap auto`'yu penceresiz ve tek kopya çalıştırır; durursa ya da 15 dakika tek satır yazmazsa (takılma) yeniden başlatır, hiçbir hatada kendisi kapanmaz. Görev Zamanlayıcı her oturum açılışında ve 5 dakikada bir yoklar: bir sebeple düşerse en geç 5 dakikada yeniden kalkar. Elle `/login` ile listede olmayan bir hesaba girerseniz onu kendiliğinden listeye ekler. |
+| **Arka plan görevi** (`cswap-auto.pyw`) | Ayrıca açıksa Gemini (agy) hesaplarının otomatik geçişini çalıştırır (aşağıda). `cswap auto`'yu penceresiz ve tek kopya çalıştırır; durursa ya da 15 dakika tek satır yazmazsa (takılma) yeniden başlatır, hiçbir hatada kendisi kapanmaz. Görev Zamanlayıcı her oturum açılışında ve 5 dakikada bir yoklar: bir sebeple düşerse en geç 5 dakikada yeniden kalkar. Elle `/login` ile listede olmayan bir hesaba girerseniz onu kendiliğinden listeye ekler. |
 | **Pencere** (`arayuz.pyw` + `arayuz.html`) | Masaüstündeki **Claude hesapları** kısayolu. Tam genişlikte, **sekmeli**: Hesaplar · Haftalık yenilenme · Sıfırlama hakkı · 5 saatlik pencere · Geçişler · Hesap ekle · Orkestra (ayrıntısı aşağıda). Her hesabın 5 saatlik, haftalık ve **Fable** kullanımı, sıfırlanma saati ve durumu (Aktif / Hazır / Dolu / Durduruldu / Okunamıyor). Satırda **Geç**, **Durdur / Aç**, **Sil**, okunamayanda **Yeniden giriş**. Üstte **5 saatlik, haftalık ve Fable eşikleri + Kaydet**, **En boş hesaba geç** (öncelik açıkken **Sıradaki hesaba geç**), **+ Hesap ekle**. Sütun başlığına tıklayınca o sütuna göre sıralar, durum süzgeci vardır. Gece boyu açık kalabilir; kod güncellenince pencere kopmadan yeni koda geçer. |
 | **Orkestra** (`orkestra/`) | Birden çok yapay zekâ CLI'ını (Claude Code, Google Antigravity, OpenAI Codex, Meta Muse) tek hedef için çalıştırır: şef hedefi alt görevlere böler, işçilere dağıtır, sonuçları birleştirir. Panelin **Orkestra** sekmesinden yönetilir; ayrıca terminal arayüzü de durur (`py orkestra\app.py`). |
 | **5 saatlik pencereyi başlatma** (`pencere-baslat.pyw`) | Pencereden saat seçilir (örn. `08:00, 13:00`); her gün o saatte penceresi sürmeyen her hesaba Haiku ile tek kısa mesaj gider (~900 token), hesapların 5 saatlik penceresi o an başlar ve 5 saat sonra sıfırlanır. **Şimdi başlat** ile elle de çalışır. Mesaj `cswap run` ile hesabın kendi profilinden gider: aktif giriş ve açık oturumlar değişmez. Görev Zamanlayıcı'da `claude-pencere-baslat` görevi olarak durur. |
@@ -143,7 +143,15 @@ kullanılan %, sıfırlanma saati) tabloda görünür. İşi `agy_hesap.py` yapa
   kotası 3 dakikada bir tazelenir; **Kotayı yenile** elle okur. Orkestra'nın Kota panelinde de aktif Gemini hesabı görünür.
 - **Açık agy oturumları:** Geçişten sonra onları kapatıp yeniden aç; açık bir oturum eski hesabın girişini geri
   yazabilir. Sekme açık agy sayısını uyarı olarak gösterir.
-- Otomatik geçiş yok: Gemini kotası dolunca hesabı sen değiştirirsin.
+- **Otomatik geçiş ve Gemini eşikleri:** Sekmedeki **Otomatik geçiş** kutusunda Gemini'nin kendi **5 saatlik** ve **haftalık**
+  eşiği vardır (Claude'unkilerden bağımsız, haftalık boşsa 5 saatlikle aynı). Açıkken arka plan görevi (`cswap-auto.pyw`
+  içinde bir iş parçacığı, `agy_hesap.oto_dongu`) aktif Gemini hesabının kotasını 5 dakikada bir okur; **Gemini modelleri**
+  kotasının kullanılan yüzdesi eşiğe gelince, eşiklerin altındaki en boş kayıtlı hesaba geçer (son otomatik geçişten en az
+  10 dk sonra; kayıtsız girişten geçmez). Pasif hesabın kotası okunamadığı için hedef, o hesabın son okumasına göre seçilir
+  (sıfırlanma saati geçmişse yenilenmiş sayılır; hiç okunmamış hesap son çaredir). Hesap değişimleri sekmede "Son Gemini
+  geçişleri"nde görünür; sekme, arka plan kontrolünün son sonucunu ve çalışmıyorsa uyarıyı gösterir. Panel ile arka plan
+  ayrı işlemler olduğundan kimlik kaydını değiştiren işlemler işlemler arası bir mutex altındadır. Kapalı gelir; Claude
+  geçişini etkilemez.
 
 ## Orkestra
 
@@ -171,10 +179,16 @@ kendiliğinden değişmeye devam eder, kota paneli aktif hesabın 5 saatlik, haf
   stdout boşsa stderr sonuca eklenir. Tek çağrı 30 dakikada bitmezse öldürülür.
 - Plan JSON'u çıktının içinden (uyarı ya da kod çiti arasından) ayıklanır; şefin seçilmemiş bir işçiye verdiği
   görev seçili işçilere kaydırılır. İşçi seçilmezse şef işi kendisi yürütür.
-- Model listesi `orkestra/.models_cache.json` önbelleğindedir (depoya girmez). Bu makinede önbellekteki bazı
-  adlar hesaba açık olmayabilir (Codex'in ChatGPT hesabında desteklenmeyen modeller, Muse `muse-spark`):
-  model hatası alırsan listeden başka model seç ya da **Modelleri tara**.
-- Testler kota yemez: `py -3 orkestra\test_runner.py`, `py -3 orkestra\test_ozel_ajan.py`, `py -3 test_gecis_politika.py` ve
+- **Model listeleri sabit kodlu değil, CLI'lardan canlı okunur** ve 6 saatte bir kendiliğinden tazelenir (panel açılırken
+  ve Orkestra sekmesi bayat listeyi görünce arka planda; sekme "Son tarama: … önce" der, tazelenince kendini yeniler;
+  **Modelleri tara** hemen yeniler). Kaynaklar: `agy models`, `claude -p /model` (CLI'nin hep en güncele işaret eden takma
+  adları), Codex'in kendi `~/.codex/models_cache.json`'u (hesabının gerçek listesi ve **modele özel akıl yürütme
+  seviyeleri**; ör. `ultra` yalnız bazı modellerde), özel ajanlar için tanımlı `model_komutu` (MiMo: `models`). Muse'un
+  model listeleyen bir komutu olmadığından yalnız "CLI varsayılanı" görünür. Model alanı **listeden seçilir ya da elle
+  yazılır** (yeni çıkan ya da listelenmeyen bir model için). Bir kaynak okunamazsa önceki iyi liste korunur; uydurma/eski
+  ad yedeği yoktur. Önbellek `orkestra/.models_cache.json`'dadır (depoya girmez).
+- Testler kota yemez: `py -3 orkestra\test_runner.py`, `py -3 orkestra\test_ozel_ajan.py`, `py -3 orkestra\test_model_kesfi.py`,
+  `py -3 test_gecis_politika.py` ve
   (gerçek agy girişine dokunmayan) `py -3 test_agy_hesap.py`. `runner.py --calistir spec.json --sahte` gerçek CLI
   çağırmadan sahte ajanlarla akışı uçtan uca çalıştırır.
 

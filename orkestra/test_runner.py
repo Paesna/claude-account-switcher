@@ -16,6 +16,17 @@ sys.path.insert(0, KLASOR)
 # Hermetik: kullanıcının gerçek ajanlar.json'u (panelden eklenen/gizlenen ajanlar) testleri etkilemesin.
 os.environ["ORKESTRA_AJANLAR"] = os.path.join(tempfile.gettempdir(), "orkestra-test-yok-%d" % os.getpid(), "ajanlar.json")
 
+# Hermetik: model önbelleği geçici ve TAZE (keşif çalışmaz, gerçek .models_cache.json'a dokunulmaz).
+import atexit  # noqa: E402
+import model_discovery  # noqa: E402
+
+_MODEL_ONBELLEGI = os.path.join(tempfile.gettempdir(), "orkestra-test-modeller-%d.json" % os.getpid())
+with open(_MODEL_ONBELLEGI, "w", encoding="utf-8") as _f:
+    json.dump({k: dict(v, taranma=model_discovery.simdi_iso(), kaynak="canli")
+               for k, v in model_discovery.FALLBACK_DATA.items()}, _f)
+os.environ["MODELS_CACHE"] = _MODEL_ONBELLEGI
+atexit.register(lambda: os.path.exists(_MODEL_ONBELLEGI) and os.remove(_MODEL_ONBELLEGI))
+
 from adapters import create_adapters  # noqa: E402
 from orchestrator import ConductorOrchestrator  # noqa: E402
 from protocol import AgentStatus  # noqa: E402
@@ -148,9 +159,13 @@ class RunnerSozlesmesi(unittest.TestCase):
         self.assertEqual(k["varsayilan_isciler"], ["agy", "codex", "muse"])
         self.assertEqual([s["anahtar"] for s in k["saglayicilar"]], ["claude", "agy", "codex", "muse"])
         self.assertEqual(k["gizli"], [])
+        self.assertIs(k["bayat"], False)            # taze önbellek: keşif yok, bayat değil
+        self.assertTrue(k["taranma"])
         for s in k["saglayicilar"]:
             self.assertEqual(set(s), {"anahtar", "ad", "ikon", "aciklama", "kurulu", "ozel", "modeller", "efforlar",
-                                      "varsayilan_model", "varsayilan_effort"})
+                                      "varsayilan_model", "varsayilan_effort", "taranma", "kaynak"})
+            self.assertEqual(s["kaynak"], "canli")
+            self.assertTrue(s["taranma"])
             self.assertIsInstance(s["kurulu"], bool)
             self.assertIs(s["ozel"], False)
             self.assertTrue(s["modeller"] and set(s["modeller"][0]) == {"id", "ad", "kademe"})

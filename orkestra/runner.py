@@ -4,8 +4,13 @@ Başsız orkestra çalıştırıcısı: Claude hesapları paneli (arayuz.pyw) bu
 Her olay stdout'a tek satır JSON olarak yazılır (`{"t": "...", ...}`, flush'lı); stdout'a başka bir şey
 basılmaz, hata ve traceback stderr'e gider.
 
-  runner.py --katalog [--tara]            Sağlayıcı/model/effort kataloğu (tek satır `katalog`; gizlenen
-                                          yerleşik ajanlar `gizli`, özel ajanlar `ozel: true`).
+  runner.py --katalog [--tara|--tazele-bayat]
+                                          Sağlayıcı/model/effort kataloğu (tek satır `katalog`; gizlenen
+                                          yerleşik ajanlar `gizli`, özel ajanlar `ozel: true`). Model listeleri
+                                          CLI'lardan canlı okunur (model_discovery.py): önbellek DOSYASI yoksa
+                                          senkron keşif yapılır, varsa olduğu gibi okunur. --tara hepsini zorla
+                                          tazeler; --tazele-bayat yalnız eksik/bayat (6 saatten eski) olanları.
+                                          Olayda her sağlayıcıda taranma/kaynak, üstte bayat ve taranma (en eski).
   runner.py --calistir spec.json [--sahte]  Bir hedefi çalıştırır. --sahte: gerçek CLI çağırmaz.
   runner.py --ajan-ekle spec.json         Özel ajan ekler (ozel_ajan.py biçimi); tek satır `tamam` ya da `hata`.
   runner.py --ajan-sil ANAHTAR            Özel ajanı siler / yerleşik ajanı listeden çıkarır (gizler).
@@ -56,13 +61,19 @@ def kurulu_mu(binary: str) -> bool:
     return shutil.which(binary) is not None or os.path.isfile(binary)
 
 
-def katalog(tara: bool) -> None:
+def katalog(tara: bool, bayat_tazele: bool = False) -> None:
+    import model_discovery
     import ozel_ajan
-    from config import get_live_providers
-    from model_discovery import sync_all_models
 
+    # Keşif config'i içe aktarmadan ÖNCE: config önbellekten okur ve içe aktarmada CLI çalıştırmaz.
+    onbellek_var = model_discovery.cache_oku()[1]
     if tara:
-        sync_all_models(force=True)
+        model_discovery.sync_all_models(force=True)
+    elif bayat_tazele or not onbellek_var:
+        model_discovery.sync_all_models(force=False)   # dosya yoksa her sağlayıcı "eksik": hepsi okunur
+    from config import get_live_providers
+
+    ham, _ = model_discovery.cache_oku()
     tumu = get_live_providers(include_hidden=True)
     saglayicilar = get_live_providers()
     ozel = {s["anahtar"] for s in ozel_ajan.yukle()["ozel"]}
@@ -77,15 +88,21 @@ def katalog(tara: bool) -> None:
                 "aciklama": p.description,
                 "kurulu": kurulu_mu(p.binary),
                 "ozel": p.key in ozel,
-                "modeller": [{"id": m.id, "ad": m.name, "kademe": m.tier} for m in p.models],
+                "modeller": [dict({"id": m.id, "ad": m.name, "kademe": m.tier},
+                                  **({"efforlar": list(m.efforts)} if m.efforts else {})) for m in p.models],
                 "efforlar": list(p.efforts),
                 "varsayilan_model": p.default_model,
                 "varsayilan_effort": p.default_effort,
+                "taranma": p.taranma,
+                "kaynak": p.kaynak,
             }
             for p in saglayicilar.values()
         ],
         # Listeden çıkarılan yerleşik ajanlar: panel "geri ekle" için gösterir.
         gizli=[{"anahtar": k, "ad": p.name} for k, p in tumu.items() if k not in saglayicilar],
+        # bayat: herhangi bir sağlayıcı hiç taranmamış/6 saatten eski; taranma: en eski tarama (hiç yoksa null).
+        bayat=model_discovery.bayat(ham),
+        taranma=model_discovery.en_eski_taranma({k: {"taranma": p.taranma} for k, p in saglayicilar.items()}),
         varsayilan_sef="claude" if "claude" in saglayicilar else (gorunen[0] if gorunen else ""),
         varsayilan_isciler=[k for k in ("agy", "codex", "muse") if k in saglayicilar],
     )
@@ -279,6 +296,8 @@ def main() -> int:
     ap = argparse.ArgumentParser(description="Başsız orkestra çalıştırıcısı (panel için)")
     ap.add_argument("--katalog", action="store_true", help="Sağlayıcı/model kataloğunu yaz")
     ap.add_argument("--tara", action="store_true", help="--katalog ile: CLI'lardan modelleri yeniden tara")
+    ap.add_argument("--tazele-bayat", action="store_true",
+                    help="--katalog ile: yalnız eksik/bayat sağlayıcıların modellerini tazele")
     ap.add_argument("--calistir", metavar="SPEC", help="spec.json yolu")
     ap.add_argument("--sahte", action="store_true", help="--calistir ile: gerçek CLI çağırma")
     ap.add_argument("--ajan-ekle", metavar="SPEC", help="özel ajan ekle (tek ajan nesnesi içeren spec.json)")
@@ -287,7 +306,7 @@ def main() -> int:
     args = ap.parse_args()
     try:
         if args.katalog:
-            katalog(args.tara)
+            katalog(args.tara, args.tazele_bayat)
             return 0
         if args.calistir:
             return asyncio.run(calistir(args.calistir, args.sahte))

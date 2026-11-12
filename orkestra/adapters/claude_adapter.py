@@ -11,7 +11,7 @@ from .base import BaseCLIAdapter
 CLAUDE_EFFORTS = ("low", "medium", "high", "xhigh", "max")
 
 class ClaudeCodeAdapter(BaseCLIAdapter):
-    def __init__(self, default_model: str = "sonnet", default_effort: str = "high"):
+    def __init__(self, default_model: str = "default", default_effort: str = "high"):
         super().__init__(
             key="claude",
             name="Claude Code",
@@ -24,7 +24,8 @@ class ClaudeCodeAdapter(BaseCLIAdapter):
         selected_model = model or self.default_model
         selected_effort = effort or self.default_effort
         cmd = [self.resolved_binary, "-p", "--output-format", "text"]
-        if selected_model:
+        # "default" = CLI'nin kendi varsayılan modeli (katalogdaki yedek giriş): --model eklenmez.
+        if selected_model and selected_model != "default":
             cmd.extend(["--model", selected_model])
         if selected_effort in CLAUDE_EFFORTS:
             cmd.extend(["--effort", selected_effort])

@@ -6,7 +6,11 @@ Ayarlar kullanıcı verisidir, depoya girmez: %LOCALAPPDATA%\\claude-account-swi
 (`ORKESTRA_AJANLAR` ortam değişkeniyle başka yol verilebilir). Dosya yoksa liste bugünkü 4 yerleşik ajandır.
 
     {"gizli": ["muse"], "ozel": [ {anahtar, ad, ikon, komut, argumanlar, model_arg, effort_arg, istem,
-                                   modeller, efforlar, varsayilan_model, varsayilan_effort}, ... ]}
+                                   model_komutu, modeller, efforlar, varsayilan_model, varsayilan_effort}, ... ]}
+
+`model_komutu` (isteğe bağlı, ör. ["models"]): komutun model listesini veren argümanları. Varsa model listesi CLI'dan
+canlı okunur (model_discovery.py; çıktının her satırında ilk boşluklu parça model kimliği sayılır); `modeller`
+elle eklenenler ve keşif başarısızken yedektir.
 
 Özel ajanın istemi argümanla geçmez: `istem: "dosya"` (geçici utf-8 dosya, `{istem_dosyasi}` yer tutucusu)
 ya da `istem: "stdin"`. Yer tutucular yalnız `{klasor}`, `{istem_dosyasi}`, `{model}`, `{effort}`; komut
@@ -38,6 +42,8 @@ MIMO_ONAYARI = {
     "model_arg": ["-m", "{model}"],
     "effort_arg": ["--variant", "{effort}"],
     "istem": "dosya",
+    # Model listesi sabit değil: `mimo.exe models` canlı okunur (aşağıdaki liste yalnız elle eklenenler/yedek).
+    "model_komutu": ["models"],
     "modeller": ["xiaomi/mimo-v2.6-flash", "xiaomi/mimo-v2.6-pro", "xiaomi/mimo-v2.6-pro-ultraspeed", "mimo/mimo-auto"],
     "efforlar": ["high", "max", "minimal"],
     "varsayilan_model": "xiaomi/mimo-v2.6-flash",
@@ -141,6 +147,22 @@ def dogrula_ajan(ham, mevcut_anahtarlar=(), kurulu_denetle: bool = True) -> dict
     if effort_arg and not any("{effort}" in a for a in effort_arg):
         raise ValueError("Akıl yürütme argümanı {effort} yer tutucusunu içermeli.")
 
+    # Model listesini canlı okuyan komut (komutun argümanları; ör. ["models"] → `mimo.exe models`). İsteğe bağlı.
+    model_komutu = ham.get("model_komutu")
+    if model_komutu is None:
+        model_komutu = []
+    if not isinstance(model_komutu, list):
+        raise ValueError("Model komutu bir liste olmalı.")
+    if len(model_komutu) > 10:
+        raise ValueError("Model komutu en çok 10 öğe olabilir.")
+    for a in model_komutu:
+        if not isinstance(a, str):
+            raise ValueError("Model komutu öğeleri metin olmalı.")
+        if len(a) > 200:
+            raise ValueError("Model komutu öğesi en çok 200 karakter olabilir.")
+        if any(c in a for c in "\x00\r\n"):
+            raise ValueError("Model komutu öğesi NUL ya da satır sonu içeremez.")
+
     istem = ham.get("istem", "dosya")
     if istem not in ("dosya", "stdin"):
         raise ValueError("İstem 'dosya' ya da 'stdin' olmalı.")
@@ -165,7 +187,7 @@ def dogrula_ajan(ham, mevcut_anahtarlar=(), kurulu_denetle: bool = True) -> dict
     return {
         "anahtar": anahtar, "ad": ad, "ikon": ikon, "komut": komut,
         "argumanlar": argumanlar, "model_arg": model_arg, "effort_arg": effort_arg, "istem": istem,
-        "modeller": modeller, "efforlar": efforlar,
+        "model_komutu": model_komutu, "modeller": modeller, "efforlar": efforlar,
         "varsayilan_model": varsayilan_model, "varsayilan_effort": varsayilan_effort,
     }
 

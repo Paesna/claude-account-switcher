@@ -17,6 +17,17 @@ sys.path.insert(0, KLASOR)
 # Hermetik varsayılan: gerçek ajanlar.json'a dokunulmasın; testler kendi geçici dosyasını verir.
 os.environ["ORKESTRA_AJANLAR"] = os.path.join(tempfile.gettempdir(), "orkestra-test-yok-%d" % os.getpid(), "ajanlar.json")
 
+# Hermetik: model önbelleği geçici ve TAZE (keşif çalışmaz, gerçek .models_cache.json'a dokunulmaz).
+import atexit  # noqa: E402
+import model_discovery  # noqa: E402
+
+_MODEL_ONBELLEGI = os.path.join(tempfile.gettempdir(), "orkestra-test-modeller-%d.json" % os.getpid())
+with open(_MODEL_ONBELLEGI, "w", encoding="utf-8") as _f:
+    json.dump({k: dict(v, taranma=model_discovery.simdi_iso(), kaynak="canli")
+               for k, v in model_discovery.FALLBACK_DATA.items()}, _f)
+os.environ["MODELS_CACHE"] = _MODEL_ONBELLEGI
+atexit.register(lambda: os.path.exists(_MODEL_ONBELLEGI) and os.remove(_MODEL_ONBELLEGI))
+
 import ozel_ajan  # noqa: E402
 from adapters import create_adapters  # noqa: E402
 from adapters.ozel_adapter import OzelAdapter  # noqa: E402

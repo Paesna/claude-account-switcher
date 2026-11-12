@@ -12,11 +12,17 @@ canlı kaydın üzerine seçilen hesabın kaydını yazmaktır. cswap'ın Claude
   Kota: `agy -p "/usage"` (yaklaşık 5 sn) her hesap için 5 saatlik ve haftalık kalan yüzdeyi verir. Hesap
   etkin değilken okunamaz: pasif hesapta son okuma gösterilir (geçişten önce ve Kaydet'te okunur).
 
-Terminalden: py agy_hesap.py durum | kota | kaydet [ad] | gec <eposta> | sil <eposta> | yeni
+  Otomatik geçiş: Gemini'nin 5 saatlik ve haftalık eşiği (Claude'unkinden bağımsız) aşılınca, uygun başka bir
+  kayıtlı hesaba geçilir. cswap-auto.pyw içindeki arka plan döngüsü `oto_dongu` ile 5 dakikada bir aktif hesabın
+  kotasını okur; panelin Gemini sekmesinden açılır/kapanır. Panel ile arka plan ayrı işlemler: kayıt değiştiren
+  her işlem işlemler arası mutex (_CaprazKilit) altında.
+
+Terminalden: py agy_hesap.py durum | kota | kaydet [ad] | gec <eposta> | sil <eposta> | yeni | esik acik|kapali <5s%> [hafta%] | oto
 Testler gerçek girişe dokunmasın diye hedef adları ortamdan değişir: AGY_HESAP_CANLI, AGY_HESAP_YEDEK_ONEKI,
-AGY_HESAP_VERI, AGY_HESAP_KOTA (kota komutu yerine kullanılacak program).
+AGY_HESAP_VERI, AGY_HESAP_KOTA (kota komutu yerine kullanılacak program), AGY_HESAP_KILIT_MS (kilit bekleme).
 """
 import ctypes
+import hashlib
 import json
 import os
 import re
@@ -25,6 +31,7 @@ import subprocess
 import sys
 import threading
 import time
+import traceback
 from ctypes import wintypes
 from datetime import datetime, timezone
 
@@ -41,7 +48,52 @@ CREATE_NO_WINDOW = 0x08000000
 CREATE_NEW_CONSOLE = 0x00000010
 ERROR_NOT_FOUND = 1168
 EPOSTA = re.compile(r'^[^@\s]{1,64}@[^@\s]{1,255}$')
-kilit = threading.RLock()                   # kayıt değiştiren ve kota okuyan her işlem sırayla
+KILIT_BEKLEME_MS = int(os.environ.get('AGY_HESAP_KILIT_MS') or 120_000)
+OTO_ARALIK_SN = 300          # arka plan kontrolü: aktif Gemini hesabının kotası bu aralıkla okunur
+OTO_BEKLEME_SN = 600         # iki otomatik geçiş arası en az (agy'nin açık oturumları eski girişi geri yazarsa gidip gelmesin)
+ESIK_ALT, ESIK_UST = 50.0, 99.9
+VARSAYILAN_ESIK = 90.0
+
+_k32 = ctypes.WinDLL('kernel32', use_last_error=True)
+_k32.CreateMutexW.restype = ctypes.c_void_p
+_k32.WaitForSingleObject.argtypes = [ctypes.c_void_p, ctypes.c_uint32]
+_k32.ReleaseMutex.argtypes = [ctypes.c_void_p]
+MUTEX_ADI = 'Local\\claude-account-switcher-agy-' + hashlib.md5(CANLI.encode('utf-8')).hexdigest()[:8]
+
+
+class _CaprazKilit:
+    """Aynı işlemdeki iş parçacıkları için RLock + işlemler arası adlandırılmış mutex.
+
+    Panel (arayuz.pyw) ile arka plan görevi (cswap-auto.pyw içindeki otomatik geçiş) ayrı işlemlerdir; ikisi
+    aynı anda Kimlik Yöneticisi kaydını değiştirmesin. İç içe `with` aynı iş parçacığında serbest."""
+
+    def __init__(self):
+        self._r = threading.RLock()
+        self._derin = 0
+        self._m = None
+
+    def __enter__(self):
+        self._r.acquire()
+        try:
+            if self._derin == 0:
+                if self._m is None:
+                    self._m = _k32.CreateMutexW(None, False, MUTEX_ADI)
+                if _k32.WaitForSingleObject(self._m, KILIT_BEKLEME_MS) not in (0, 0x80):  # WAIT_OBJECT_0, WAIT_ABANDONED
+                    raise RuntimeError('Gemini hesap kaydı başka bir işlemde kullanılıyor (panel ya da arka plan); biraz sonra yeniden dene.')
+            self._derin += 1
+        except BaseException:
+            self._r.release()
+            raise
+        return self
+
+    def __exit__(self, *_):
+        self._derin -= 1
+        if self._derin == 0:
+            _k32.ReleaseMutex(self._m)
+        self._r.release()
+
+
+kilit = _CaprazKilit()                      # kayıt değiştiren ve kota okuyan her işlem sırayla (işlemler arası da)
 
 
 # ── Windows Kimlik Yöneticisi ──────────────────────────────────────────────────────────────────
@@ -240,6 +292,159 @@ def _taze_kota(h, simdi):
     return cikti
 
 
+# ── Eşikler ve otomatik geçiş ──────────────────────────────────────────────────────────────────
+# Claude'un eşiklerinden (cswap) bağımsızdır: Gemini'nin 5 saatlik ve haftalık eşiği ayrı yazılır. Eşikler
+# "Gemini modelleri" kotasının KULLANILAN yüzdesine uygulanır (agy kalanı verir; Claude/GPT grubu bilgi içindir).
+
+def _esik(v, ad, bos_olur=False):
+    if v is None or (isinstance(v, str) and not v.strip()):
+        if bos_olur:
+            return None
+        raise ValueError('%s bir sayı olmalı.' % ad)
+    if isinstance(v, bool):
+        raise ValueError('%s bir sayı olmalı.' % ad)
+    try:
+        v = float(v)
+    except (TypeError, ValueError):
+        raise ValueError('%s bir sayı olmalı.' % ad)
+    if not ESIK_ALT <= v <= ESIK_UST:
+        raise ValueError('%s %g ile %g arasında olmalı.' % (ad, ESIK_ALT, ESIK_UST))
+    return v
+
+
+def ayar_oku():
+    """{'otomatik': bool, 'saatlik': %, 'haftalik': % | None (boşsa 5 saatlikle aynı)}. Okunamazsa varsayılan."""
+    ham = _meta_oku().get('ayar')
+    ayar = {'otomatik': False, 'saatlik': VARSAYILAN_ESIK, 'haftalik': None}
+    if isinstance(ham, dict):
+        ayar['otomatik'] = ham.get('otomatik') is True
+        for alan, bos in (('saatlik', False), ('haftalik', True)):
+            try:
+                ayar[alan] = _esik(ham.get(alan), alan, bos)
+            except ValueError:
+                pass
+        if ayar['saatlik'] is None:
+            ayar['saatlik'] = VARSAYILAN_ESIK
+    return ayar
+
+
+def ayar_yaz(otomatik, saatlik, haftalik=None):
+    """Eşikleri ve otomatik geçişi kaydeder (doğrulayarak); kaydedilen ayarı verir."""
+    if not isinstance(otomatik, bool):
+        raise ValueError('Otomatik geçiş açık ya da kapalı olmalı.')
+    ayar = {'otomatik': otomatik, 'saatlik': _esik(saatlik, 'Gemini 5 saatlik eşiği'),
+            'haftalik': _esik(haftalik, 'Gemini haftalık eşiği', bos_olur=True)}
+    with kilit:
+        m = _meta_oku()
+        m['ayar'] = ayar
+        _meta_yaz(m)
+    return ayar
+
+
+def _olay_ekle(m, kimden, kime, neden):
+    """Son 30 geçiş (elle ve otomatik) hesap kaydında tutulur; panel gösterir."""
+    liste = m.setdefault('gecisler', [])
+    liste.insert(0, {'zaman': _simdi(), 'kimden': kimden, 'kime': kime, 'neden': neden})
+    del liste[30:]
+
+
+def gemini_grubu(kota):
+    return next((g for g in kota or [] if str(g.get('ad') or '').lower().startswith('gemini')), {})
+
+
+def _kullanilan(grup, pencere):
+    v = grup.get(pencere) or {}
+    return None if v.get('kalan') is None else 100 - v['kalan']
+
+
+def _oto_hedef(m, aktif, t5, th, simdi):
+    """Geçilecek hesap: aktif dışında, son kota görüntüsüne göre iki eşiğin altındaki en boş hesap; hiç kota okumamış
+    (bilinmeyen) hesap ancak bilinen uygun yoksa. Yoksa None."""
+    bilinen, bilinmeyen = [], []
+    for eposta, h in m['hesaplar'].items():
+        if eposta == aktif or _oku(_yedek_hedefi(eposta)) is None:
+            continue
+        g = gemini_grubu(_taze_kota(h, simdi))
+        u5, uh = _kullanilan(g, 'bes_saat'), _kullanilan(g, 'haftalik')
+        if u5 is None and uh is None:
+            bilinmeyen.append(eposta)
+        elif (u5 is None or u5 < t5) and (uh is None or uh < th):
+            bilinen.append((max((u5 or 0) / t5, (uh or 0) / th), eposta))
+    if bilinen:
+        return min(bilinen)[1]
+    return bilinmeyen[0] if bilinmeyen else None
+
+
+def _oto_not(sonuc):
+    """Arka plan kontrolünün son sonucu (panel "son kontrol" olarak gösterir). Geçiş değilse None döner."""
+    with kilit:
+        m = _meta_oku()
+        m['oto_son'] = {'zaman': _simdi(), 'sonuc': sonuc}
+        _meta_yaz(m)
+    return None
+
+
+def oto_tur(simdi=None):
+    """Bir otomatik geçiş değerlendirmesi: aktif hesabın Gemini kotasını okur, eşikte ise uygun hesaba geçer.
+
+    Geçildiyse mesaj, değilse None (nedeni oto_son'a yazılır). Açık değilse hiçbir şey yapmaz. Kayıtsız girişten
+    geçmez (giriş kaybolurdu). Geçişten sonra OTO_BEKLEME_SN dolmadan yeniden geçmez."""
+    ayar = ayar_oku()
+    if not ayar['otomatik']:
+        return None
+    simdi_dt = simdi or datetime.now(timezone.utc)
+    with kilit:
+        canli = _oku(CANLI)
+        aktif = eposta_of(canli[0]) if canli else None
+        m = _meta_oku()
+        if not aktif or aktif not in m['hesaplar']:
+            return _oto_not('Şu anki agy girişi kayıtlı değil: otomatik geçiş yapılamaz')
+        try:
+            kota = kota_oku()
+        except Exception as e:
+            return _oto_not('Kota okunamadı: %s' % e)
+        g = gemini_grubu(kota)
+        t5 = ayar['saatlik']
+        th = ayar['haftalik'] if ayar['haftalik'] is not None else t5
+        u5, uh = _kullanilan(g, 'bes_saat'), _kullanilan(g, 'haftalik')
+        neden = None
+        if u5 is not None and u5 >= t5:
+            neden = 'Gemini 5 saatlik %%%d' % u5
+        elif uh is not None and uh >= th:
+            neden = 'Gemini haftalık %%%d' % uh
+        if neden is None:
+            return _oto_not('Eşiğin altında (5 saat %s, hafta %s)' % (
+                '%%%d' % u5 if u5 is not None else '?', '%%%d' % uh if uh is not None else '?'))
+        m = _meta_oku()
+        son = m.get('oto_son_gecis')
+        if son and time.time() - son < OTO_BEKLEME_SN:
+            return _oto_not('%s: geçiş bekleme süresinde (son otomatik geçişten %d dk geçti)' % (neden, (time.time() - son) // 60))
+        hedef = _oto_hedef(m, aktif, t5, th, simdi_dt)
+        if hedef is None:
+            return _oto_not('%s ama geçilecek uygun Gemini hesabı yok (hepsi eşikte ya da kayıtlı başka hesap yok)' % neden)
+        mesaj = gec(hedef, neden='otomatik: ' + neden, kota=False)
+        m = _meta_oku()
+        m['oto_son_gecis'] = time.time()
+        _meta_yaz(m)
+        _oto_not('Geçildi: %s' % neden)
+        return mesaj
+
+
+def oto_dongu(yaz=print, durdur=None):
+    """Arka plan döngüsü (cswap-auto.pyw bir iş parçacığında çalıştırır): OTO_ARALIK_SN'de bir oto_tur."""
+    durdur = durdur or threading.Event()
+    yaz('agy otomatik geçiş döngüsü başladı (%d sn aralık)' % OTO_ARALIK_SN)
+    bekle = 20
+    while not durdur.wait(bekle):
+        bekle = OTO_ARALIK_SN
+        try:
+            mesaj = oto_tur()
+            if mesaj:
+                yaz('agy otomatik geçiş: ' + mesaj)
+        except Exception:
+            yaz('agy otomatik geçiş hatası:\n' + traceback.format_exc())
+
+
 # ── Hesap işlemleri ────────────────────────────────────────────────────────────────────────────
 
 def durum():
@@ -260,7 +465,8 @@ def durum():
     return {'kurulu': kurulu, 'canli_var': canli is not None, 'canli_eposta': canli_eposta,
             'canli_gecersiz': canli is not None and canli_eposta is None,
             'canli_kayitli': canli_eposta in m['hesaplar'] if canli_eposta else False,
-            'hesaplar': hesaplar, 'acik_agy': acik_agy_sayisi() if kurulu else 0}
+            'hesaplar': hesaplar, 'acik_agy': acik_agy_sayisi() if kurulu else 0,
+            'ayar': ayar_oku(), 'oto_son': m.get('oto_son'), 'gecisler': (m.get('gecisler') or [])[:10]}
 
 
 def kaydet(ad=None, kota=True):
@@ -292,8 +498,8 @@ def kaydet(ad=None, kota=True):
         return mesaj
 
 
-def gec(eposta, zorla=False):
-    """Canlı girişi kayıtlı bir hesapla değiştirir."""
+def gec(eposta, zorla=False, neden='elle', kota=True):
+    """Canlı girişi kayıtlı bir hesapla değiştirir. kota=False: ayrılan hesabın kotası zaten okunmuş (otomatik geçiş)."""
     eposta = str(eposta or '').strip().lower()
     with kilit:
         hedef = _oku(_yedek_hedefi(eposta))
@@ -308,10 +514,11 @@ def gec(eposta, zorla=False):
             raise ValueError('Şu anki giriş kayıtlı değil: geçersen kaybolur. Önce "Bu girişi kaydet" de.')
         if canli_eposta in m['hesaplar']:
             # Ayrılan hesap: kotasını oku (pasifken okunamaz), agy'nin yenilediği token'ları yedeğe geri al.
-            try:
-                kota_oku()
-            except Exception:
-                pass
+            if kota:
+                try:
+                    kota_oku()
+                except Exception:
+                    pass
             canli = _oku(CANLI)  # kota okuması token'ı yenilemiş olabilir
             if canli and eposta_of(canli[0]) == canli_eposta:
                 _yaz(_yedek_hedefi(canli_eposta), canli[0], canli[1])
@@ -322,7 +529,8 @@ def gec(eposta, zorla=False):
         m = _meta_oku()
         if eposta in m['hesaplar']:
             m['hesaplar'][eposta]['son_aktif'] = _simdi()
-            _meta_yaz(m)
+        _olay_ekle(m, canli_eposta, eposta, neden)
+        _meta_yaz(m)
         ad = m['hesaplar'].get(eposta, {}).get('ad') or eposta
         return 'Gemini hesabı değişti: %s. Açık agy oturumlarını kapatıp yeniden aç.' % ad
 
@@ -377,6 +585,10 @@ def _main(arg):
         print(sil(arg[1]))
     elif islem == 'yeni':
         print(yeni_hesap())
+    elif islem == 'esik' and len(arg) > 2:
+        print(json.dumps(ayar_yaz(arg[1] == 'acik', arg[2], arg[3] if len(arg) > 3 else None), ensure_ascii=False))
+    elif islem == 'oto':
+        print(oto_tur() or ('Geçiş yok: ' + str((_meta_oku().get('oto_son') or {}).get('sonuc') or 'otomatik geçiş kapalı')))
     else:
         print(__doc__.split('Terminalden:')[1].split('Testler')[0].strip())
 

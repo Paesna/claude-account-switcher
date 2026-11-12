@@ -8,7 +8,7 @@ from typing import List, Optional, Tuple
 from .base import BaseCLIAdapter
 
 class CodexAdapter(BaseCLIAdapter):
-    def __init__(self, default_model: str = "gpt-6-astra", default_effort: str = "xhigh"):
+    def __init__(self, default_model: str = "default", default_effort: str = "medium"):
         super().__init__(
             key="codex",
             name="OpenAI Codex",
@@ -26,7 +26,8 @@ class CodexAdapter(BaseCLIAdapter):
             "--dangerously-bypass-approvals-and-sandbox",
             "--skip-git-repo-check",
         ]
-        if selected_model:
+        # "default" = CLI'nin kendi varsayılan modeli: -m eklenmez.
+        if selected_model and selected_model != "default":
             cmd.extend(["-m", selected_model])
         if selected_effort:
             cmd.extend(["-c", f'model_reasoning_effort="{selected_effort}"'])

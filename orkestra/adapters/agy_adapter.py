@@ -5,7 +5,7 @@ from typing import List, Optional
 from .base import BaseCLIAdapter
 
 class AntigravityAdapter(BaseCLIAdapter):
-    def __init__(self, default_model: str = "gemini-3.8-flash-high", default_effort: str = "high"):
+    def __init__(self, default_model: str = "default", default_effort: str = "high"):
         super().__init__(
             key="agy",
             name="Google Antigravity (AGY)",
@@ -25,8 +25,10 @@ class AntigravityAdapter(BaseCLIAdapter):
             "text",
             "--dangerously-skip-permissions"
         ]
-        if selected_model:
+        # "default" = CLI'nin kendi varsayılan modeli: --model eklenmez.
+        if selected_model and selected_model != "default":
             cmd.extend(["--model", selected_model])
-        if selected_effort and selected_effort in ["low", "medium", "high"]:
+        # `agy --help`: --effort low|medium|high|xhigh|max
+        if selected_effort and selected_effort in ["low", "medium", "high", "xhigh", "max"]:
             cmd.extend(["--effort", selected_effort])
         return cmd

@@ -161,6 +161,17 @@ def bir_tur(gunluk, ortam, durum):
     return bekleme
 
 
+def agy_oto_baslat(gunluk):
+    """Gemini (agy) hesaplarının otomatik geçişi (agy_hesap.py): panelin Gemini sekmesinden açılıp kapanır, kapalıyken
+    boşa iş yapmaz. Bu süreçte ayrı bir iş parçacığı: cswap auto'yu etkilemez; hata yalnız günlüğe yazılır."""
+    try:
+        import agy_hesap
+    except Exception:
+        gunluk.yaz('agy_hesap.py yuklenemedi, Gemini otomatik gecisi kapali:\n' + traceback.format_exc())
+        return
+    threading.Thread(target=agy_hesap.oto_dongu, args=(gunluk.yaz,), daemon=True, name='agy-oto').start()
+
+
 def main():
     # Görev durdurulup hemen başlatılınca (kur.ps1, eşik kaydetme) eski kopya mutex'i birkaç
     # saniye daha tutabiliyor; yeni kopya "zaten çalışıyor" deyip çıkınca hiç kopya kalmıyordu
@@ -177,6 +188,7 @@ def main():
     ortam = dict(os.environ, PYTHONUTF8='1', PYTHONUNBUFFERED='1')
     gunluk = Gunluk()
     durum = {'son_ekleme': 0.0}
+    agy_oto_baslat(gunluk)
     while True:
         try:
             bekleme = bir_tur(gunluk, ortam, durum)

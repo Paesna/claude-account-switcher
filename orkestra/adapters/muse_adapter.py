@@ -12,7 +12,7 @@ from typing import List, Optional, Tuple
 from .base import BaseCLIAdapter
 
 class MuseCodeAdapter(BaseCLIAdapter):
-    def __init__(self, default_model: str = "muse-spark", default_effort: str = "high"):
+    def __init__(self, default_model: str = "default", default_effort: str = "high"):
         super().__init__(
             key="muse",
             name="Meta Muse Code",

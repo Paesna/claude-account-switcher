@@ -64,7 +64,7 @@ class OrchestrationApp(App):
         self.conductor_key = conductor_key
         
         cfg = self.providers.get(self.conductor_key)
-        self.conductor_model = conductor_model or (cfg.default_model if cfg else "sonnet")
+        self.conductor_model = conductor_model or (cfg.default_model if cfg else "default")
         self.conductor_effort = conductor_effort or (cfg.default_effort if cfg else "high")
         
         self.orchestrator = ConductorOrchestrator(
@@ -422,7 +422,7 @@ class OrchestrationApp(App):
         elif action == "/help":
             chatter.write(
                 "[bold yellow]KOMUTLAR:[/bold yellow]\n"
-                "• [bold]/model <ad>[/bold]: Modeli değiştir (Örn: /model gemini-3.8-flash-high veya /model sonnet)\n"
+                "• [bold]/model <ad>[/bold]: Modeli değiştir (model kimliği [2] listesindeki gibi, Örn: /model sonnet; default = CLI'nin kendi modeli)\n"
                 "• [bold]/effort <seviye>[/bold]: Akıl yürütme seviyesini ayarla (low, medium, high, xhigh, max, ultra)\n"
                 "• [bold]/chief <şef>[/bold]: Orkestra şefini değiştir (claude, agy, codex, muse)\n"
                 "• [bold]/refresh[/bold]: CLIs modellerini canlı olarak yeniden tara\n"

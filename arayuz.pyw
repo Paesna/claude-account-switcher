@@ -959,7 +959,7 @@ ORKESTRA_TEMIZLE = ('CLAUDECODE', 'CLAUDE_CODE_ENTRYPOINT', 'CLAUDE_CONFIG_DIR',
                     'ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN', 'CLAUDE_CODE_OAUTH_TOKEN')
 ork_kilit = threading.Lock()
 ork_surec = None
-_katalog = {'veri': None}
+_katalog = {'veri': None, 'tazeleniyor': False, 'deneme': 0.0}
 
 
 def ork_bos():
@@ -1146,20 +1146,53 @@ def orkestra_iptal(_):
     return 'Orkestra durduruldu.'
 
 
-def orkestra_katalog(tara=False):
-    """Sağlayıcılar, modeller ve akıl yürütme seviyeleri (orkestra/runner.py --katalog)."""
-    if _katalog['veri'] is not None and not tara:
-        return _katalog['veri']
+KATALOG_YENIDEN_DENEME_SN = 30 * 60   # otomatik tazeleme denendikten sonra (başarısız olsa da) bu kadar beklenir
+_katalog_kilit = threading.Lock()
+
+
+def ork_katalog_oku(tara=False):
+    """orkestra/runner.py --katalog [--tara]. Önbellek dosyası yoksa runner ilk keşfi kendisi yapar (yavaş olabilir)."""
     r = subprocess.run(ork_komut('--katalog', *(['--tara'] if tara else [])), capture_output=True, text=True,
                        encoding='utf-8', errors='replace', env=ork_ortam(), cwd=ORKESTRA_KLASOR,
-                       creationflags=CREATE_NO_WINDOW, timeout=180 if tara else 30)
+                       creationflags=CREATE_NO_WINDOW, timeout=240 if tara else 120)
     satir = next((s for s in r.stdout.splitlines() if s.startswith('{')), '')
     try:
-        veri = json.loads(satir)
+        return json.loads(satir)
     except ValueError:
         raise RuntimeError('Orkestra kataloğu okunamadı: %s' % (ilk_satir(r.stderr, r.stdout) or 'kod %s' % r.returncode))
-    _katalog['veri'] = veri
-    return veri
+
+
+def ork_katalog_tazele():
+    """Model listesi bayatsa (CLI'lardan en son 6 saatten önce taranmış) arka planda yeniden taranır; sayfa bu sırada
+    eldeki listeyi gösterir ve tazelenince kendisi yeniler. Başarısız olsa da 30 dk boyunca yeniden denenmez."""
+    with _katalog_kilit:
+        if _katalog['tazeleniyor'] or time.time() - _katalog['deneme'] < KATALOG_YENIDEN_DENEME_SN:
+            return
+        _katalog['tazeleniyor'] = True
+        _katalog['deneme'] = time.time()
+
+    def tara():
+        try:
+            _katalog['veri'] = ork_katalog_oku(True)
+        except Exception:
+            log('model listesi arka planda tazelenemedi: ' + traceback.format_exc())
+        finally:
+            _katalog['tazeleniyor'] = False
+
+    threading.Thread(target=tara, daemon=True).start()
+
+
+def orkestra_katalog(tara=False):
+    """Sağlayıcılar, modeller (CLI'lardan canlı keşfedilir) ve akıl yürütme seviyeleri. 'tazeleniyor': arka planda
+    yeniden taranıyor, sayfa kısa süre sonra yeniden sorsun."""
+    if tara or _katalog['veri'] is None:
+        _katalog['veri'] = ork_katalog_oku(tara)
+        if tara:
+            _katalog['deneme'] = time.time()
+    veri = _katalog['veri']
+    if veri.get('bayat') and not tara:
+        ork_katalog_tazele()
+    return dict(veri, tazeleniyor=_katalog['tazeleniyor'])
 
 
 def ork_ajan_islemi(*arg):
@@ -1205,7 +1238,8 @@ def orkestra_ajan_geri(govde):
 
 def orkestra_tara(_):
     veri = orkestra_katalog(tara=True)
-    return 'Modeller CLI\'lardan yeniden tarandı (%d sağlayıcı).' % len(veri.get('saglayicilar') or [])
+    sayilar = ', '.join('%s %d' % (p['ad'].split(' (')[0], len(p['modeller'])) for p in veri.get('saglayicilar') or [])
+    return 'Modeller CLI\'lardan yeniden tarandı: %s.' % sayilar
 
 
 def orkestra_durumu(ajan='', konum=0):
@@ -1247,6 +1281,18 @@ except Exception:
     log('orkestra kaydi okunamadi: ' + traceback.format_exc())
 
 
+def _katalog_basta():
+    """Panel açılırken model listesini hazırla: bayatsa arka planda tazelenir (sekme açılınca güncel olsun)."""
+    try:
+        orkestra_katalog()
+    except Exception:
+        log('model katalogu baslangicta okunamadi: ' + traceback.format_exc())
+
+
+if os.path.isfile(os.path.join(ORKESTRA_KLASOR, 'runner.py')) and not os.environ.get('ARAYUZ_KATALOG_BASLANGIC_YOK'):
+    threading.Thread(target=_katalog_basta, daemon=True).start()
+
+
 # Gemini (agy) hesapları: işi agy_hesap.py yapar (Kimlik Yöneticisi'ndeki agy girişini hesaplar arasında değiştirir).
 def agy_gec(govde):
     return agy_hesap.gec(govde.get('eposta'), bool(govde.get('zorla')))
@@ -1265,6 +1311,14 @@ def agy_kota(_):
     return 'Gemini kotası okundu.'
 
 
+def agy_esik(govde):
+    """Gemini'nin kendi eşikleri (5 saatlik, haftalık) ve otomatik geçiş: Claude'unkilerden bağımsız."""
+    ayar = agy_hesap.ayar_yaz(govde.get('otomatik') is True, govde.get('saatlik'), govde.get('haftalik'))
+    return 'Gemini otomatik geçiş %s: 5 saatlik %%%g, haftalık %s.' % (
+        'açık' if ayar['otomatik'] else 'kapalı', ayar['saatlik'],
+        ('%%%g' % ayar['haftalik']) if ayar['haftalik'] is not None else '5 saatlikle aynı')
+
+
 def agy_yeni(_):
     return agy_hesap.yeni_hesap()
 
@@ -1277,7 +1331,7 @@ def agy_ac(_):
 ISLEMLER = {'gec': gec, 'en-iyi': en_iyi, 'durdur': durdur, 'ac': ac, 'esik': esik_kaydet, 'ekle': ekle,
             'oncelik-kaydet': oncelik_kaydet,
             'agy-gec': agy_gec, 'agy-kaydet': agy_kaydet, 'agy-sil': agy_sil, 'agy-kota': agy_kota,
-            'agy-yeni': agy_yeni, 'agy-ac': agy_ac,
+            'agy-yeni': agy_yeni, 'agy-ac': agy_ac, 'agy-esik': agy_esik,
             'ekle-iptal': ekle_iptal, 'sil': sil, 'kapandi': kapandi, 'claude-ai': claude_ai,
             'sifirla-sira': sifirla_sira, 'sifirla-iptal': sifirla_iptal, 'sifirlama-hak': sifirlama_hak,
             'pencere-kaydet': pencere_kaydet, 'pencere-simdi': pencere_simdi,

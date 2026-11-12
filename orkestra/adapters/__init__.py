@@ -17,19 +17,19 @@ def create_adapters(
     efforts = efforts_override or {}
     adapters: Dict[str, BaseCLIAdapter] = {
         "claude": ClaudeCodeAdapter(
-            default_model=models.get("claude", "sonnet"),
+            default_model=models.get("claude", "default"),
             default_effort=efforts.get("claude", "high")
         ),
         "agy": AntigravityAdapter(
-            default_model=models.get("agy", "gemini-3.8-flash-high"),
+            default_model=models.get("agy", "default"),
             default_effort=efforts.get("agy", "high")
         ),
         "codex": CodexAdapter(
-            default_model=models.get("codex", "gpt-6-astra"),
-            default_effort=efforts.get("codex", "xhigh")
+            default_model=models.get("codex", "default"),
+            default_effort=efforts.get("codex", "medium")
         ),
         "muse": MuseCodeAdapter(
-            default_model=models.get("muse", "muse-spark"),
+            default_model=models.get("muse", "default"),
             default_effort=efforts.get("muse", "high")
         )
     }

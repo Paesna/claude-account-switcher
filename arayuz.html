@@ -405,6 +405,22 @@ footer { color: var(--soluk); font-size: 12px; margin-top: 18px; }
         <button id="agyAcDugme" class="ana" type="button" hidden>agy'yi aç (giriş yap)</button>
       </div>
     </section>
+    <section class="panel ic" id="agyOtoKutu" style="margin-bottom:16px">
+      <h2>Otomatik geçiş (Gemini eşikleri)</h2>
+      <form id="agyEsikForm" style="display:flex;flex-wrap:wrap;gap:12px;align-items:center">
+        <label style="display:inline-flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="agyOto"> Eşiğe gelince başka hesaba geç</label>
+        <span class="esik">
+          <label for="agyEsik5" title="Gemini modelleri 5 saatlik kotasının kullanılan yüzdesi">5 saat %</label>
+          <input id="agyEsik5" type="number" min="50" max="99.9" step="1" required>
+          <span class="esik-ayrac">·</span>
+          <label for="agyEsikH" title="Gemini modelleri haftalık kotasının kullanılan yüzdesi (boşsa 5 saatlikle aynı)">Haftalık %</label>
+          <input id="agyEsikH" type="number" min="50" max="99.9" step="1" placeholder="—">
+          <button type="submit" class="ana kucuk">Kaydet</button>
+        </span>
+      </form>
+      <p class="ipucu" id="agyOtoAciklama" style="margin-bottom:0"></p>
+      <p class="ipucu" id="agyOtoDurum" style="margin-top:4px"></p>
+    </section>
     <section class="panel tablo-kap">
       <table>
         <thead><tr>
@@ -418,6 +434,13 @@ footer { color: var(--soluk); font-size: 12px; margin-top: 18px; }
       <button id="agyKota" type="button">Kotayı yenile</button>
       <button id="agyYeni" class="ana" type="button">+ Yeni Gemini hesabı ekle</button>
     </div>
+    <h3 style="margin-top:18px">Son Gemini geçişleri</h3>
+    <section class="panel tablo-kap dar-tablo">
+      <table>
+        <thead><tr><th>Zaman</th><th>Geçiş</th><th>Neden</th></tr></thead>
+        <tbody id="agyGecisler"></tbody>
+      </table>
+    </section>
     <details class="nasil">
       <summary>Nasıl çalışır?</summary>
       <p>agy girişini Windows Kimlik Yöneticisi'nde tek bir kayıtta tutar. Her Gemini hesabının girişi burada ayrı bir kayıt olarak (Windows'un kendi korumasıyla, düz dosya yok) saklanır; <b>Geç</b> aktif girişin yerine seçtiğin hesabınkini yazar. Geçmeden önce ayrılan hesabın agy'nin yenilediği anahtarları yedeğine geri alınır.</p>
@@ -473,6 +496,7 @@ footer { color: var(--soluk); font-size: 12px; margin-top: 18px; }
             <button class="kucuk" id="orkTara" type="button"
               title="CLI'lardan model ve akıl yürütme listesini yeniden okur (yarım dakika sürebilir)">Modelleri tara</button></span></div>
           <div id="orkAjanlar"><p class="ipucu" style="margin:0">Yükleniyor…</p></div>
+          <p class="ipucu" id="orkTaranma" style="margin:8px 0 0"></p>
           <div id="orkGizli" class="gizli-liste" hidden></div>
           <details id="orkAjanEkle" class="nasil" style="margin-top:12px">
             <summary>Özel ajan ekle (başka bir CLI)</summary>
@@ -490,8 +514,10 @@ footer { color: var(--soluk); font-size: 12px; margin-top: 18px; }
                 <label>Model argümanı<input id="orkOzelModelArg" type="text" placeholder="-m {model}" autocomplete="off"></label>
                 <label>Akıl yürütme argümanı<input id="orkOzelEffortArg" type="text" placeholder="--variant {effort}" autocomplete="off"></label>
               </div>
+              <label>Model listesi komutu (isteğe bağlı: modeller canlı okunsun)<input id="orkOzelModelKomut" type="text" placeholder="models" autocomplete="off"
+                title="Ajanın komutuna bu argümanlar verilir (örn. mimo.exe models); çıktıdaki her satırın ilk sözcüğü model kimliği sayılır. Altındaki 'Modeller' listesi bu komut çalışmazsa yedektir."></label>
               <div class="ork-form-satir">
-                <label>Modeller (virgülle)<input id="orkOzelModeller" type="text" placeholder="a/model-1, a/model-2" autocomplete="off"></label>
+                <label>Modeller (virgülle, yedek)<input id="orkOzelModeller" type="text" placeholder="a/model-1, a/model-2" autocomplete="off"></label>
                 <label>Varsayılan model<input id="orkOzelVarModel" type="text" autocomplete="off"></label>
               </div>
               <div class="ork-form-satir">
@@ -1066,9 +1092,16 @@ function onceki(iso) {
   return Math.floor(dk / 1440) + ' gün önce';
 }
 
-function agyOlcu(p) {  // p: {kalan, sifirlanma, yenilendi}
+// Gemini eşikleri (kullanılan %): 5 saatlik ve haftalık, Claude'unkinden bağımsız. Haftalık boşsa 5 saatlikle aynı.
+function agyEsikleri(a) {
+  const ayar = a.ayar || {};
+  const t5 = ayar.saatlik != null ? ayar.saatlik : 90;
+  return { t5, th: ayar.haftalik != null ? ayar.haftalik : t5, otomatik: Boolean(ayar.otomatik) };
+}
+
+function agyOlcu(p, sinir = 90) {  // p: {kalan, sifirlanma, yenilendi}; sinir: bu pencerenin eşiği (kullanılan %)
   if (!p || p.kalan == null) return el('div', { class: 'olcu yok' }, '—');
-  const k = 100 - p.kalan, sinif = sinifla(k, 90, 15);
+  const k = 100 - p.kalan, sinif = sinifla(k, sinir, 15);
   return el('div', { class: 'olcu' },
     el('div', { class: 'cubuk ' + sinif }, el('span', { style: '--y:' + k + '%' })),
     el('span', { class: 'yuzde ' + sinif }, '%' + k + ' kullanıldı',
@@ -1095,10 +1128,32 @@ async function agyKotaYenile(elle) {
   }
 }
 
+let agyEsikDegisti = false;  // yazılmış ama kaydedilmemiş eşik yoklamada ezilmesin
+
 function agyCiz(v) {
   const a = v.agy || {};
   const hesaplar = a.hesaplar || [];
   const aktif = hesaplar.find(h => h.aktif);
+  const esk = agyEsikleri(a);
+
+  // Otomatik geçiş kutusu: form statik, yazılan değer korunur
+  if (!agyEsikDegisti) {
+    $('agyOto').checked = esk.otomatik;
+    $('agyEsik5').value = esk.t5;
+    $('agyEsikH').value = (a.ayar || {}).haftalik != null ? a.ayar.haftalik : '';
+  }
+  document.querySelector('#agyEsikForm button').disabled = mesgul || a.kurulu === false;
+  $('agyOtoAciklama').textContent = 'Eşikler Gemini modelleri kotasının kullanılan yüzdesine uygulanır ve Claude\'un eşiklerinden bağımsızdır. ' +
+    'Eşiğe gelen aktif hesabın yerine, eşiklerin altındaki en boş kayıtlı Gemini hesabına geçilir (en az 10 dk arayla).';
+  const oto = a.oto_son;
+  const yas = oto ? (Date.now() - Date.parse(oto.zaman)) / 60000 : null;
+  const durumKutu = $('agyOtoDurum');
+  durumKutu.className = 'ipucu' + (esk.otomatik && (yas == null || yas > 15) ? ' kirmizi' : '');
+  durumKutu.textContent = !esk.otomatik ? 'Otomatik geçiş kapalı: geçişi sen yaparsın.'
+    : oto && yas <= 15 ? 'Arka plan kontrolü: ' + onceki(oto.zaman) + ' · ' + oto.sonuc
+    : 'Otomatik geçiş açık ama arka plan kontrolü son 15 dakikada çalışmadı' +
+      (oto ? ' (son: ' + onceki(oto.zaman) + ' · ' + oto.sonuc + ')' : '') +
+      ': görev (cswap-auto) yeni koddan başlamamış olabilir; birkaç dakika bekle ya da görevi yeniden başlat.';
 
   const uyar = [];
   if (a.hata) uyar.push(el('div', { class: 'bildirim kotu' }, 'Gemini hesapları okunamadı: ' + a.hata));
@@ -1125,7 +1180,7 @@ function agyCiz(v) {
     return el('tr', { class: h.aktif ? 'aktif' : '' },
       el('td', { class: 'hesap' }, el('b', {}, h.ad), el('small', {}, h.eposta)),
       el('td', {}, el('span', { class: 'rozet ' + (h.aktif ? 'aktif' : 'hazir') }, h.aktif ? 'Aktif' : 'Kayıtlı')),
-      el('td', {}, agyOlcu(g.bes_saat)), el('td', {}, agyOlcu(g.haftalik)),
+      el('td', {}, agyOlcu(g.bes_saat, esk.t5)), el('td', {}, agyOlcu(g.haftalik, esk.th)),
       el('td', {}, agyOlcu(c.bes_saat)), el('td', {}, agyOlcu(c.haftalik)),
       el('td', { class: 'sifir' }, h.kota_zamani ? onceki(h.kota_zamani) : 'okunmadı',
         el('small', {}, h.aktif ? '' : 'pasifken okunamaz')),
@@ -1144,6 +1199,14 @@ function agyCiz(v) {
   }) : [el('tr', {}, el('td', { colspan: 8, class: 'bos' },
     'Kayıtlı Gemini hesabı yok. Şu anki girişi kaydet ya da yeni hesap ekle.'))]));
 
+  const adlar = Object.fromEntries(hesaplar.map(h => [h.eposta, h.ad]));
+  const ad = e => (e ? adlar[e] || e.split('@')[0] : '—');
+  $('agyGecisler').replaceChildren(...((a.gecisler || []).length ? a.gecisler.map(g => el('tr', {},
+    el('td', { class: 'sifir' }, new Date(g.zaman).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit' }) + ' ' + saat(g.zaman)),
+    el('td', {}, el('b', {}, ad(g.kimden) + ' → ' + ad(g.kime))),
+    el('td', {}, el('span', { class: 'rozet ' + (String(g.neden).startsWith('otomatik') ? 'mor' : 'aktif') }, g.neden))))
+    : [el('tr', {}, el('td', { colspan: 3, class: 'bos' }, 'Henüz Gemini geçişi yok'))]));
+
   sayi('gemini', kayitsiz ? '!' : hesaplar.length, kayitsiz ? 'dikkat' : '');
   // Aktif hesabın kotası 3 dakikadan eskiyse (ya da hiç okunmadıysa) sekme açıkken kendiliğinden okunur.
   if (sekme === 'gemini' && aktif && !agyKota.suruyor && !a.hata && Date.now() - agyKota.deneme > 60000 &&
@@ -1153,6 +1216,19 @@ function agyCiz(v) {
 $('agyKaydetForm').addEventListener('submit', async ev => {
   ev.preventDefault();
   if (await islem('agy-kaydet', { ad: $('agyAd').value.trim() }, 'Gemini girişi kaydediliyor (kota okunuyor, ~5 sn)…')) $('agyAd').value = '';
+});
+for (const id of ['agyOto', 'agyEsik5', 'agyEsikH']) {
+  $(id).addEventListener('input', () => { agyEsikDegisti = true; });
+  $(id).addEventListener('change', () => { agyEsikDegisti = true; });
+}
+$('agyEsikForm').addEventListener('submit', async ev => {
+  ev.preventDefault();
+  const h = $('agyEsikH').value.trim();
+  const govde = { otomatik: $('agyOto').checked, saatlik: Number($('agyEsik5').value), haftalik: h ? Number(h) : null };
+  if (await islem('agy-esik', govde, 'Gemini eşikleri kaydediliyor…')) {
+    agyEsikDegisti = false;
+    if (veri) ciz();
+  }
 });
 $('agyAcDugme').addEventListener('click', () => islem('agy-ac', {}, 'agy açılıyor…'));
 $('agyKota').addEventListener('click', () => agyKotaYenile(true));
@@ -1286,6 +1362,7 @@ function orkFormKur() {
   const kartlar = kat.saglayicilar.map(p => {
     const model = (ayar.modeller || {})[p.anahtar];
     const effort = (ayar.eforlar || {})[p.anahtar];
+    const modelDeger = model || p.varsayilan_model;
     return el('div', { class: 'ajan-kart' + (p.kurulu ? '' : ' yok'), 'data-k': p.anahtar },
       el('div', { class: 'ajan-ust' },
         el('b', {}, p.ikon + ' ' + p.ad),
@@ -1302,10 +1379,12 @@ function orkFormKur() {
             if (await islem('orkestra-ajan-sil', { anahtar: p.anahtar }, p.ad + ' kaldırılıyor…')) await orkKatalogYukle();
           } }, '✕')),
       el('div', { class: 'ajan-alt' },
-        el('label', {}, 'Model', el('select', { class: 'orkModel', 'data-k': p.anahtar },
-          ...p.modeller.map(m => el('option', { value: m.id, selected: m.id === (model || p.varsayilan_model), title: m.ad }, m.id + ' · ' + m.kademe)))),
-        el('label', {}, 'Akıl yürütme', el('select', { class: 'orkEffort', 'data-k': p.anahtar },
-          ...p.efforlar.map(f => el('option', { value: f, selected: f === (effort || p.varsayilan_effort) }, f))))));
+        // Model: listeden seç ya da yaz (listesi olmayan CLI'lar ve yeni çıkan modeller için). Liste CLI'lardan canlı okunur.
+        el('label', {}, 'Model',
+          el('input', { type: 'text', class: 'orkModel', 'data-k': p.anahtar, list: 'orkModelListe-' + p.anahtar, value: modelDeger,
+            autocomplete: 'off', spellcheck: 'false', title: 'Listeden seç ya da model kimliğini yaz' + (p.kaynak ? ' (liste: ' + p.kaynak + ')' : '') }),
+          el('datalist', { id: 'orkModelListe-' + p.anahtar }, ...p.modeller.map(m => el('option', { value: m.id }, m.ad + ' · ' + m.kademe)))),
+        el('label', {}, 'Akıl yürütme', el('select', { class: 'orkEffort', 'data-k': p.anahtar }, ...eforSecenekleri(p, modelDeger, effort)))));
   });
   $('orkAjanlar').replaceChildren(...kartlar);
   const gizli = kat.gizli || [];
@@ -1333,6 +1412,7 @@ const MIMO_ONAYARI = {
   anahtar: 'mimo', ad: 'Xiaomi MiMo', komut: 'mimo.exe',
   argumanlar: ['run', '--dir', '{klasor}', 'Ekteki istemi uygula.', '-f', '{istem_dosyasi}'],
   model_arg: ['-m', '{model}'], effort_arg: ['--variant', '{effort}'], istem: 'dosya',
+  model_komutu: ['models'],   // modeller `mimo.exe models` ile canlı okunur; aşağıdaki liste yedek
   modeller: ['xiaomi/mimo-v2.6-flash', 'xiaomi/mimo-v2.6-pro', 'xiaomi/mimo-v2.6-pro-ultraspeed', 'mimo/mimo-auto'],
   efforlar: ['high', 'max', 'minimal'], varsayilan_model: 'xiaomi/mimo-v2.6-flash', varsayilan_effort: 'high',
 };
@@ -1348,6 +1428,7 @@ function orkOzelDoldur(a) {
   yaz('Ad', a.ad || ''); yaz('Anahtar', a.anahtar || ''); yaz('Komut', a.komut || '');
   yaz('Arg', (a.argumanlar || []).join('\n'));
   yaz('ModelArg', (a.model_arg || []).join(' ')); yaz('EffortArg', (a.effort_arg || []).join(' '));
+  yaz('ModelKomut', (a.model_komutu || []).join(' '));
   yaz('Modeller', (a.modeller || []).join(', ')); yaz('VarModel', a.varsayilan_model || '');
   yaz('Eforlar', (a.efforlar || []).join(', ')); yaz('VarEffort', a.varsayilan_effort || '');
   $('orkOzelIstem').value = a.istem || 'dosya';
@@ -1362,6 +1443,7 @@ function orkOzelSpec() {
     argumanlar: $('orkOzelArg').value.split(/\r?\n/).map(x => x.trim()).filter(Boolean) };
   if (v('ModelArg')) a.model_arg = parcala(v('ModelArg'));
   if (v('EffortArg')) a.effort_arg = parcala(v('EffortArg'));
+  if (v('ModelKomut')) a.model_komutu = parcala(v('ModelKomut'));
   if (v('Modeller')) a.modeller = liste(v('Modeller'));
   if (v('Eforlar')) a.efforlar = liste(v('Eforlar'));
   if (v('VarModel')) a.varsayilan_model = v('VarModel');
@@ -1390,6 +1472,28 @@ $('orkOzelForm').addEventListener('submit', async ev => {
   }
 });
 
+// Akıl yürütme seviyeleri: modele özel liste varsa (ör. Codex'te her modelin desteklediği seviyeler farklı) o, yoksa ajanın listesi.
+function modelEforlari(p, modelId) {
+  const m = p.modeller.find(x => x.id === modelId);
+  return (m && m.efforlar && m.efforlar.length) ? m.efforlar : p.efforlar;
+}
+
+function eforSecenekleri(p, modelId, secili) {
+  const liste = modelEforlari(p, modelId);
+  const sec = liste.includes(secili) ? secili : (liste.includes(p.varsayilan_effort) ? p.varsayilan_effort : liste[0]);
+  return liste.map(f => el('option', { value: f, selected: f === sec }, f));
+}
+
+// Model değişince akıl yürütme seçeneklerini o modele göre yenile (seçili seviye geçerliyse korunur).
+function orkEforGuncelle(k) {
+  const p = ork.katalog && ork.katalog.saglayicilar.find(x => x.anahtar === k);
+  const kutu = document.querySelector('.orkModel[data-k="' + k + '"]');
+  const sel = document.querySelector('.orkEffort[data-k="' + k + '"]');
+  if (!p || !kutu || !sel) return;
+  const modelId = kutu.value.trim() || kutu.dataset.eski || p.varsayilan_model;
+  sel.replaceChildren(...eforSecenekleri(p, modelId, sel.value));
+}
+
 // Şef aynı anda işçi olamaz.
 function orkRolleriDenkle() {
   const sef = (document.querySelector('input[name=orkSef]:checked') || {}).value;
@@ -1402,7 +1506,7 @@ function orkRolleriDenkle() {
 function orkFormOku() {
   const sef = (document.querySelector('input[name=orkSef]:checked') || {}).value;
   const modeller = {}, eforlar = {};
-  document.querySelectorAll('.orkModel').forEach(s => { modeller[s.dataset.k] = s.value; });
+  document.querySelectorAll('.orkModel').forEach(s => { modeller[s.dataset.k] = s.value.trim() || s.dataset.eski || ''; });
   document.querySelectorAll('.orkEffort').forEach(s => { eforlar[s.dataset.k] = s.value; });
   const isciler = [...document.querySelectorAll('.orkIsci')].filter(c => c.checked && c.dataset.k !== sef).map(c => c.dataset.k);
   return { sef, isciler, modeller, eforlar, klasor: $('orkKlasor').value.trim() };
@@ -1410,6 +1514,28 @@ function orkFormOku() {
 
 $('orkAjanlar').addEventListener('change', () => {
   orkRolleriDenkle();
+  if (ork.katalog) orkAyarYaz(orkFormOku());
+});
+// Model kutusu: tarayıcının liste önerisi yazılı değere göre süzülür; tıklayınca tam liste görünsün diye kutu geçici
+// boşaltılır (eski değer ipucu olarak durur), boş bırakılırsa geri konur.
+$('orkAjanlar').addEventListener('focusin', ev => {
+  const t = ev.target;
+  if (t.classList && t.classList.contains('orkModel') && t.value) { t.dataset.eski = t.value; t.placeholder = t.value; t.value = ''; }
+});
+$('orkAjanlar').addEventListener('input', ev => {
+  const t = ev.target;
+  if (t.classList && t.classList.contains('orkModel')) {
+    if (t.value.trim()) t.dataset.eski = t.value.trim();
+    orkEforGuncelle(t.dataset.k);
+    if (ork.katalog) orkAyarYaz(orkFormOku());
+  }
+});
+$('orkAjanlar').addEventListener('focusout', ev => {
+  const t = ev.target;
+  if (t.classList && t.classList.contains('orkModel') && !t.value.trim() && t.dataset.eski) {
+    t.value = t.dataset.eski;
+    orkEforGuncelle(t.dataset.k);
+  }
   if (ork.katalog) orkAyarYaz(orkFormOku());
 });
 $('orkKlasor').addEventListener('input', () => orkAyarYaz({ klasor: $('orkKlasor').value.trim() }));
@@ -1448,13 +1574,29 @@ async function orkKatalogYukle() {
   if (ork.katalogYukleniyor) return;
   ork.katalogYukleniyor = true;
   try {
-    ork.katalog = await api('/api/orkestra/katalog');
-    orkFormKur();
+    const yeni = await api('/api/orkestra/katalog');
+    const imza = JSON.stringify(yeni.saglayicilar) + JSON.stringify(yeni.gizli || []);
+    // Yalnız liste değiştiyse form yeniden kurulur: yazarken kutu elinden alınmasın.
+    if (imza !== ork.katalogImza) { ork.katalog = yeni; ork.katalogImza = imza; orkFormKur(); } else { ork.katalog = yeni; }
+    orkTaranmaYazisi();
+    // Model listesi arka planda tazeleniyorsa kısa süre sonra yeniden sor (en çok ~2 dk).
+    if (yeni.tazeleniyor && (ork.yenidenDene = (ork.yenidenDene || 0) + 1) <= 15) {
+      setTimeout(() => { if (sekme === 'orkestra') orkKatalogYukle(); }, 8000);
+    } else {
+      ork.yenidenDene = 0;
+    }
   } catch (e) {
     $('orkAjanlar').replaceChildren(el('p', { class: 'ipucu kirmizi', style: 'margin:0' }, 'Ajan listesi okunamadı: ' + e.message));
   } finally {
     ork.katalogYukleniyor = false;
   }
+}
+
+function orkTaranmaYazisi() {
+  const k = ork.katalog, y = $('orkTaranma');
+  if (!k || !y) return;
+  y.textContent = 'Model listeleri CLI\'lardan canlı okunur (6 saatte bir kendiliğinden tazelenir). ' +
+    (k.tazeleniyor ? 'Şu an taranıyor…' : k.taranma ? 'Son tarama: ' + onceki(k.taranma) + '.' : 'Henüz taranmadı.');
 }
 
 function orkAc() {
@@ -1624,8 +1766,8 @@ function orkKotaCiz(v) {
   const geminiBolumu = ag.kurulu === false ? [] : [
     el('div', { style: 'margin-top:14px' }, 'Gemini (agy) hesabı: ', agAktif ? el('b', {}, agAktif.ad)
       : el('span', { class: 'neden' }, ag.canli_var ? 'kayıtlı değil (Gemini sekmesi)' : 'giriş yok')),
-    agAktif ? satir('5 saatlik', kul(gg.bes_saat), 90, 15) : null,
-    agAktif ? satir('Haftalık', kul(gg.haftalik), 90, 15) : null,
+    agAktif ? satir('5 saatlik', kul(gg.bes_saat), agyEsikleri(ag).t5, 15) : null,
+    agAktif ? satir('Haftalık', kul(gg.haftalik), agyEsikleri(ag).th, 15) : null,
     agAktif && agAktif.kota_zamani ? el('p', { class: 'ipucu' }, 'Gemini kotası okundu: ' + onceki(agAktif.kota_zamani) + '. Hesap değiştirmek için Gemini sekmesi.') : null,
   ];
   $('orkKota').replaceChildren(...[

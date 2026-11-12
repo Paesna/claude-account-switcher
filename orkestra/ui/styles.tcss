@@ -1,0 +1,232 @@
+/* Professional Cyber Terminal Theme */
+Screen {
+    background: #090c10;
+    color: #c9d1d9;
+}
+
+#app-header {
+    dock: top;
+    height: 3;
+    background: #0d1117;
+    border-bottom: heavy #00f0ff;
+    padding: 0 1;
+    color: #00f0ff;
+}
+
+#footer-status {
+    dock: bottom;
+    height: 1;
+    background: #0d1117;
+    color: #8b949e;
+    padding: 0 1;
+}
+
+#main-workspace {
+    layout: horizontal;
+    height: 1fr;
+}
+
+/* Left Sidebar Panels: Chief, Models, Effort */
+#sidebar-panels {
+    width: 38;
+    height: 1fr;
+    margin-right: 1;
+    layout: vertical;
+}
+
+.control-panel {
+    border: solid #30363d;
+    background: #0d1117;
+    margin-bottom: 1;
+    padding: 0;
+}
+
+.control-panel:focus-within {
+    border: double #00f0ff;
+}
+
+#panel-chief {
+    height: 6;
+}
+
+#panel-models {
+    height: 1fr;
+    min-height: 6;
+}
+
+#panel-efforts {
+    height: 10;
+    margin-bottom: 0;
+}
+
+.panel-title {
+    background: #161b22;
+    color: #00f0ff;
+    text-style: bold;
+    padding: 0 1;
+    height: 1;
+}
+
+/* ListViews for keyboard navigation */
+ListView {
+    background: #0d1117;
+    height: 1fr;
+    padding: 0;
+}
+
+#list-chiefs {
+    height: 4;
+}
+
+#list-efforts {
+    height: 7;
+}
+
+ListItem {
+    padding: 0 1;
+    color: #8b949e;
+    height: 1;
+}
+
+ListItem:hover {
+    background: #1f242c;
+    color: #ffffff;
+}
+
+ListItem.-highlighted {
+    background: #1f242c;
+    color: #00ff9d;
+    text-style: bold;
+}
+
+ListItem.selected-item {
+    color: #00ff9d;
+    text-style: bold;
+}
+
+/* Right Content Area: Terminal Tabs */
+#content-tabs {
+    width: 1fr;
+    height: 1fr;
+}
+
+TabbedContent {
+    height: 1fr;
+}
+
+TabPane {
+    padding: 0;
+    height: 1fr;
+}
+
+/* Overview Split */
+#overview-split {
+    layout: vertical;
+    height: 1fr;
+}
+
+/* PROMINENT TASK / PROMPT INPUT SECTION */
+#prompt-box-container {
+    height: 4;
+    border: solid #00f0ff;
+    background: #161b22;
+    padding: 0 1;
+    margin-bottom: 1;
+}
+
+#prompt-box-container:focus-within {
+    border: double #00ff9d;
+}
+
+.prompt-box-title {
+    color: #00ff9d;
+    text-style: bold;
+    height: 1;
+}
+
+#prompt-row {
+    layout: horizontal;
+    height: 3;
+}
+
+#task-input {
+    width: 1fr;
+    border: tall #30363d;
+    background: #090c10;
+    color: #ffffff;
+    height: 3;
+}
+
+#task-input:focus {
+    border: tall #00f0ff;
+}
+
+#btn-submit-task {
+    width: 20;
+    height: 3;
+    background: #238636;
+    color: #ffffff;
+    text-style: bold;
+    border: none;
+    margin-left: 1;
+}
+
+#btn-submit-task:hover {
+    background: #2ea043;
+}
+
+/* Active Plan Box */
+#active-plan-box {
+    height: 7;
+    border: solid #30363d;
+    background: #0d1117;
+    padding: 0 1;
+    margin-bottom: 1;
+}
+
+#active-plan-box:focus-within {
+    border: double #00f0ff;
+}
+
+/* Live Chatter Box */
+#live-chatter-box {
+    height: 1fr;
+    border: solid #30363d;
+    background: #090c10;
+    padding: 0;
+}
+
+#live-chatter-box:focus-within {
+    border: double #00f0ff;
+}
+
+/* Raw Agent Terminal Logs */
+.terminal-log {
+    height: 1fr;
+    border: solid #30363d;
+    background: #05070a;
+    color: #e6edf3;
+    padding: 1;
+}
+
+/* Quick Command Prompt Bar (Slash Commands) */
+#command-bar-container {
+    height: 3;
+    dock: bottom;
+    background: #0d1117;
+    border-top: solid #30363d;
+    padding: 0 1;
+}
+
+#cmd-input {
+    border: none;
+    background: #090c10;
+    color: #00f0ff;
+    height: 1;
+    margin-top: 1;
+}
+
+#cmd-input:focus {
+    border: none;
+    background: #0f141c;
+}

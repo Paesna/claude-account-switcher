@@ -7,3 +7,5 @@ tetik/
 __pycache__/
 # Eski makro denemeleri (fare koordinatları ve hesap adları)
 eski/
+# Orkestra: CLI'lardan taranan model önbelleği (yerelde üretilir)
+orkestra/.models_cache.json

@@ -20,7 +20,8 @@ Açık Claude Code oturumları yeniden başlatmadan, bir sonraki mesajda yeni he
 | Parça | Ne yapar |
 |---|---|
 | **Arka plan görevi** (`cswap-auto.pyw`) | `cswap auto`'yu penceresiz ve tek kopya çalıştırır; durursa ya da 15 dakika tek satır yazmazsa (takılma) yeniden başlatır, hiçbir hatada kendisi kapanmaz. Görev Zamanlayıcı her oturum açılışında ve 5 dakikada bir yoklar: bir sebeple düşerse en geç 5 dakikada yeniden kalkar. Elle `/login` ile listede olmayan bir hesaba girerseniz onu kendiliğinden listeye ekler. |
-| **Pencere** (`arayuz.pyw` + `arayuz.html`) | Masaüstündeki **Claude hesapları** kısayolu. Her hesabın 5 saatlik ve haftalık kullanımı, sıfırlanma saati ve durumu (Aktif / Hazır / Dolu / Durduruldu / Okunamıyor). Satırda **Geç**, **Durdur / Aç**, **Sil**, okunamayanda **Yeniden giriş**. Üstte **5 saatlik ve haftalık eşikler + Kaydet**, **En boş hesaba geç**, **+ Hesap ekle**. Son 15 geçiş, haftalık yenilenme takvimi. Sütun başlığına tıklayınca o sütuna göre sıralar (ad, kullanım, sıfırlanma, haftalık yenilenme tarihi; tekrar tıklayınca ters). Gece boyu açık kalabilir; kod güncellenince pencere kopmadan yeni koda geçer. |
+| **Pencere** (`arayuz.pyw` + `arayuz.html`) | Masaüstündeki **Claude hesapları** kısayolu. Tam genişlikte, **sekmeli**: Hesaplar · Haftalık yenilenme · Sıfırlama hakkı · 5 saatlik pencere · Geçişler · Hesap ekle · Orkestra (ayrıntısı aşağıda). Her hesabın 5 saatlik, haftalık ve **Fable** kullanımı, sıfırlanma saati ve durumu (Aktif / Hazır / Dolu / Durduruldu / Okunamıyor). Satırda **Geç**, **Durdur / Aç**, **Sil**, okunamayanda **Yeniden giriş**. Üstte **5 saatlik ve haftalık eşikler + Kaydet**, **En boş hesaba geç**, **+ Hesap ekle**. Sütun başlığına tıklayınca o sütuna göre sıralar, durum süzgeci vardır. Gece boyu açık kalabilir; kod güncellenince pencere kopmadan yeni koda geçer. |
+| **Orkestra** (`orkestra/`) | Birden çok yapay zekâ CLI'ını (Claude Code, Google Antigravity, OpenAI Codex, Meta Muse) tek hedef için çalıştırır: şef hedefi alt görevlere böler, işçilere dağıtır, sonuçları birleştirir. Panelin **Orkestra** sekmesinden yönetilir; ayrıca terminal arayüzü de durur (`py orkestra\app.py`). |
 | **5 saatlik pencereyi başlatma** (`pencere-baslat.pyw`) | Pencereden saat seçilir (örn. `08:00, 13:00`); her gün o saatte penceresi sürmeyen her hesaba Haiku ile tek kısa mesaj gider (~900 token), hesapların 5 saatlik penceresi o an başlar ve 5 saat sonra sıfırlanır. **Şimdi başlat** ile elle de çalışır. Mesaj `cswap run` ile hesabın kendi profilinden gider: aktif giriş ve açık oturumlar değişmez. Görev Zamanlayıcı'da `claude-pencere-baslat` görevi olarak durur. |
 | **Hesap ekleme** (`hesap-ekle.ps1`) | claude.ai çıkış sekmesini ve bir kutu açar; tarayıcıda o hesapla girip **Tamam** dersiniz, gerisi kendiliğinden. Giriş beklenen hesapla bitmezse kaydetmez, yeniden sorar. |
 | **Anlık yüzde ve hızlı tetik** (önerilir, `durum-satiri.py` + `esikte-gec.py`) | Claude Code'un durum satırı her yanıtta güncel yüzdeyi verir. Yüzde değiştikçe claude-swap'ın deposuna yazılır: pencere ve otomatik geçiş dakikalık okumayı beklemez. Aktif hesap eşiğe gelince boş hesaba hemen geçilir. Bir oturum yine de sınıra çarparsa `StopFailure` hook'u hesabı anında değiştirir. |
@@ -81,6 +82,46 @@ bu hook'u çalıştırır; oturum durur, hesap değişir, "devam" yazınca yeni 
 }
 ```
 
+## Pencere sekmeleri
+
+| Sekme | İçerik |
+|---|---|
+| **Hesaplar** | Özet kartları (aktif hesap, hazır, dolu, haftalıkta dolu, **Fable kullanımı**, durdurulan), duruma göre süzgeç ve tüm hesapların tablosu: 5 saatlik, haftalık ve Fable çubukları, sıfırlanma saatleri. |
+| **Haftalık yenilenme** | Hesaplar yenilenme gününe göre gruplu, en yakın üstte; haftalık ve Fable çubukları. Kırmızı: haftalık eşiğin üstünde, o saate kadar geçişte kullanılmaz. Yenilenme saati bilinmeyen hesaplar listelenmez. |
+| **Sıfırlama hakkı** | Yalnız sıfırlamanın işe yaradığı dolu hesaplar (5 saatlikte dolu ya da haftalığı 1 günden uzakta dolu), en geç açılacak olan önce. **Sıfırla ↗** claude.ai Kullanım sayfasını açar; sayfada hakkı olmadığını görürsen **Hakkı yok** ile hesabı listeden kaldırırsın (altta "göster" çipiyle geri alınır). |
+| **5 saatlik pencere** | Başlatma saatleri, **Şimdi başlat** ve son başlatmanın hesap hesap sonucu. |
+| **Geçişler** | Son 40 geçiş: otomatik (eşikte, doldu), hızlı tetik ve elle. |
+| **Hesap ekle** | E-postayı yaz, tarayıcıda giriş yap; süren girişin adımı ve İptal. |
+| **Orkestra** | Aşağıda. |
+
+**Fable:** `cswap list`, hesabın modele özel haftalık sınırlarını (Fable) `scoped` altında veriyor; pencere onu
+Hesaplar ve Haftalık yenilenme tablolarında, özet kartında ve Orkestra'nın kota panelinde gösterir. Hesap
+değiştirme kararını etkilemez (cswap 5 saatlik ve haftalık eşiğe bakar), yalnız bilgidir.
+
+## Orkestra
+
+Panelin **Orkestra** sekmesinde bir hedef yazılır; şef (varsayılan Claude Code) hedefi 1-3 alt göreve böler,
+seçilen işçilere (Antigravity, Codex, Muse...) dağıtır ve sonuçları birleştirir. Sekmede şef/işçi seçimi, her
+ajan için model ve akıl yürütme seviyesi, çalışma klasörü, plan, ajanlar arası yazışma (mesaja basınca tam
+içerik), sonuç ve ajan başına canlı çıktı vardır. Son çalışma pencere kapanınca da durur. **Modelleri tara**
+CLI'lardan model listesini yeniden okur. Claude her çağrıda o an **aktif hesabı** kullanır: eşikte hesap
+kendiliğinden değişmeye devam eder, kota paneli aktif hesabın 5 saatlik, haftalık ve Fable yüzdesini gösterir.
+
+- `orkestra/runner.py` panelin kullandığı başsız çalıştırıcıdır (stdout'a satır satır JSON olay yazar). Panel onu
+  ayrı süreç olarak başlatır; **Durdur** süreç ağacını (CLI'larla birlikte) öldürür. Çalışma sürerken panel
+  kendini kapatmaz ve yeni koda devretmez.
+- İstem komut satırından geçmez: `claude` ve `codex`'e stdin'den, `muse`'a geçici dosyayla gider (`.cmd` kabuğu
+  çok satırlı metni bozar, `"` ve `&` komut enjeksiyonuna açar). `agy` gerçek exe olduğu için argümanla çalışır.
+- CLI'ların stderr uyarıları canlı çıktıda görünür ama sonuç metnine karışmaz; süreç hatayla biterse ya da
+  stdout boşsa stderr sonuca eklenir. Tek çağrı 30 dakikada bitmezse öldürülür.
+- Plan JSON'u çıktının içinden (uyarı ya da kod çiti arasından) ayıklanır; şefin seçilmemiş bir işçiye verdiği
+  görev seçili işçilere kaydırılır. İşçi seçilmezse şef işi kendisi yürütür.
+- Model listesi `orkestra/.models_cache.json` önbelleğindedir (depoya girmez). Bu makinede önbellekteki bazı
+  adlar hesaba açık olmayabilir (Codex'in ChatGPT hesabında desteklenmeyen modeller, Muse `muse-spark`):
+  model hatası alırsan listeden başka model seç ya da **Modelleri tara**.
+- Testler kota yemez: `py -3 orkestra\test_runner.py`. `runner.py --calistir spec.json --sahte` gerçek CLI
+  çağırmadan sahte ajanlarla akışı uçtan uca çalıştırır.
+
 ## Bilinmesi gerekenler
 
 - **Tarayıcı, claude.ai'da hangi hesap açıksa yetkiyi ona verir**, soru sormaz. Hesap
@@ -107,7 +148,7 @@ bu hook'u çalıştırır; oturum durur, hesap değişir, "devam" yazınca yeni 
   dosyasını okur). Claude masaüstü uygulaması ve claude.ai kendi girişini kullanır, onları değiştirmez.
 - **Sıfırlama hakkı:** Anthropic hesaplara ara sıra sınır sıfırlama hakkı verir; claude.ai'de
   Ayarlar → Kullanım → *Limit resets* → **Reset for free** ile kullanılır (Claude Code terminalinde yok).
-  Pencerede dolu satırlarda (5 saatlikte ya da haftalıkta) **Geç**'in yanında çıkan
+  Pencerenin **Sıfırlama hakkı** sekmesinde dolu hesapların satırında çıkan
   **Sıfırla ↗** o hesabın Kullanım sayfasını kendi tarayıcı profilinde açar
   (`%LOCALAPPDATA%\claude-account-switcher\tarayici`): her hesapla ilk seferde bir kez girilir, sonra hep
   girili açılır, ana tarayıcıda çıkış-giriş gerekmez. Yalnız 5 saatlikte dolu hesapta 5 saatliği sıfırlayan
@@ -131,6 +172,12 @@ bu hook'u çalıştırır; oturum durur, hesap değişir, "devam" yazınca yeni 
   anahtar üretir; anahtarı taşımayan istek reddedilir. Tarayıcıda açık başka bir web sayfası
   yerel sunucuya istek atıp hesabınızı değiştiremez.
 - Günlükler (`*.log`) hesap e-postalarını içerir; `.gitignore` onları depo dışında tutar.
+- **Orkestra işçileri onay istemeden çalışır** (Codex `--dangerously-bypass-approvals-and-sandbox`, Antigravity
+  `--dangerously-skip-permissions`; Muse `--approval-mode never` ile, sandbox açık). Seçtiğin **çalışma
+  klasöründe** dosya değiştirebilirler; başlatırken klasör ve ajanlar bir kez daha sorulur. Klasör boş
+  bırakılırsa projelerine dokunmayan boş bir klasör (`%LOCALAPPDATA%\claude-account-switcher\orkestra\calisma`)
+  kullanılır. Model ve akıl yürütme alanları `.cmd` kabuğundan geçtiği için yalnız `A-Za-z0-9._:/[]-`
+  karakterlerini kabul eder.
 
 ## Kaldırma
 

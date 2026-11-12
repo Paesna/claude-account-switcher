@@ -10,6 +10,7 @@
   --yazi: #1d2330; --soluk: #667085; --vurgu: #3b5bdb; --vurgu-acik: #e8edff;
   --yesil: #2f9e44; --yesil-acik: #e6f6ea; --sari: #e8890c; --sari-acik: #fff3e0;
   --kirmizi: #e03131; --kirmizi-acik: #ffe9e9; --gri: #868e96; --gri-acik: #f1f3f5;
+  --mor: #7048e8; --mor-acik: #efe9ff;
   --golge: 0 1px 2px rgba(16, 24, 40, .06), 0 1px 3px rgba(16, 24, 40, .08);
 }
 @media (prefers-color-scheme: dark) {
@@ -18,6 +19,7 @@
     --yazi: #e6e8ec; --soluk: #98a2b3; --vurgu: #7c95ff; --vurgu-acik: #252e4d;
     --yesil: #51cf66; --yesil-acik: #1d3324; --sari: #ffa94d; --sari-acik: #3a2a16;
     --kirmizi: #ff6b6b; --kirmizi-acik: #3d1f22; --gri: #adb5bd; --gri-acik: #262b34;
+    --mor: #a58bff; --mor-acik: #2d2650;
     --golge: none;
   }
 }
@@ -27,10 +29,11 @@ body {
   margin: 0; background: var(--zemin); color: var(--yazi);
   font: 14px/1.45 "Segoe UI", system-ui, sans-serif;
 }
-.kabuk { max-width: 1340px; margin: 0 auto; padding: 20px 24px 32px; }
+.kabuk { max-width: 1680px; margin: 0 auto; padding: 18px 28px 32px; }
 header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; }
 h1 { font-size: 22px; margin: 0; letter-spacing: -.01em; }
 h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--soluk); margin: 0 0 10px; }
+h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--soluk); margin: 0 0 8px; }
 .gorev { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--soluk); margin-top: 2px; }
 .gorev::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--yesil); }
 .gorev.kapali::before { background: var(--kirmizi); }
@@ -41,106 +44,170 @@ h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: v
 .esik input { width: 56px; border: 1px solid var(--cizgi); border-radius: 7px; padding: 6px 8px; font: inherit;
   background: var(--yuzey-2); color: var(--yazi); text-align: right; }
 .esik .esik-ayrac { color: var(--soluk); font-weight: 600; opacity: .4; margin: 0 1px; }
-.haftalik-deger { font-variant-numeric: tabular-nums; }
-.haftalik-deger.dolu { color: var(--kirmizi); font-weight: 600; }
-.haftalik-deger.yakin { color: var(--sari); font-weight: 600; }
-.haftalik small { display: block; color: var(--soluk); font-size: 12px; white-space: nowrap; }
-td.haftalik { white-space: nowrap; }
-.sifirlama { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--cizgi); display: grid; gap: 6px; justify-items: start; }
-.sifirlama h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--soluk); margin: 0; }
-.sifirlama .ipucu { margin: 0; }
-.sifirlama .sira { margin: 0; font-weight: 600; color: var(--sari); }
-.pencere { margin-top: 10px; display: grid; gap: 6px; justify-items: start; }
-.pencere p { margin: 0; }
-.pencere .saatler { font-size: 13px; }
-.pencere .saatler b { font-variant-numeric: tabular-nums; }
-.pencere .sira { font-weight: 600; color: var(--sari); }
-.pencere .son { font-size: 13px; }
-.pencere .hatali { color: var(--kirmizi); font-size: 12px; }
-th button.sirala { font: inherit; color: inherit; background: none; border: 0; padding: 0; border-radius: 4px;
-  cursor: pointer; white-space: nowrap; text-align: left; }
-th button.sirala:hover { color: var(--vurgu); }
-th button.sirala:focus-visible { outline: 2px solid var(--vurgu); outline-offset: 2px; }
-th button.sirala::after { content: "↕"; margin-left: 4px; opacity: .35; }
-th.secili button.sirala { color: var(--vurgu); }
-th[aria-sort="ascending"] button.sirala::after { content: "▲"; opacity: 1; font-size: 9px; }
-th[aria-sort="descending"] button.sirala::after { content: "▼"; opacity: 1; font-size: 9px; }
-ol.yenilenme { list-style: none; margin: 0; padding: 0; }
-ol.yenilenme li { display: grid; grid-template-columns: 104px 1fr auto; gap: 8px; align-items: baseline;
-  padding: 6px 0; border-bottom: 1px dashed var(--cizgi); font-size: 13px; }
-ol.yenilenme li:last-child { border-bottom: 0; }
-ol.yenilenme time { color: var(--soluk); font-variant-numeric: tabular-nums; }
-ol.yenilenme time b { color: var(--yazi); font-weight: 600; }
-ol.yenilenme .kalan { color: var(--soluk); font-size: 12px; white-space: nowrap; }
-ol.yenilenme .y { font-variant-numeric: tabular-nums; }
-ol.yenilenme li.dolu .y { color: var(--kirmizi); font-weight: 600; }
-ol.yenilenme li.aktif > span:first-of-type { font-weight: 600; color: var(--vurgu); }
 button { font: inherit; border: 1px solid var(--cizgi); background: var(--yuzey); color: var(--yazi);
   border-radius: 8px; padding: 7px 12px; cursor: pointer; white-space: nowrap; }
 button:hover:not(:disabled) { border-color: var(--vurgu); color: var(--vurgu); }
 button:disabled { opacity: .45; cursor: default; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--vurgu); outline-offset: 2px; }
 button.ana { background: var(--vurgu); border-color: var(--vurgu); color: #fff; }
 button.ana:hover:not(:disabled) { color: #fff; filter: brightness(1.08); }
 button.kucuk { padding: 5px 10px; font-size: 13px; }
 button.tehlike:hover:not(:disabled) { border-color: var(--kirmizi); color: var(--kirmizi); }
+input[type=text], input[type=email], input[type=number], textarea, select {
+  font: inherit; border: 1px solid var(--cizgi); border-radius: 8px; padding: 7px 10px;
+  background: var(--yuzey-2); color: var(--yazi); }
 
-.ozet { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin: 18px 0; }
-.kart { background: var(--yuzey); border: 1px solid var(--cizgi); border-radius: 12px; padding: 12px 14px; box-shadow: var(--golge); }
-.kart .etiket { font-size: 12px; color: var(--soluk); }
-.kart .deger { font-size: 20px; font-weight: 600; margin-top: 2px; }
-.kart .alt { font-size: 12px; color: var(--soluk); }
+/* Sekmeler */
+.sekmeler { display: flex; flex-wrap: wrap; gap: 2px; border-bottom: 1px solid var(--cizgi); margin: 16px 0 16px; }
+button.sekme { border: 0; border-bottom: 2px solid transparent; border-radius: 8px 8px 0 0; background: none;
+  padding: 10px 16px; color: var(--soluk); font-weight: 600; margin-bottom: -1px; }
+button.sekme:hover:not(:disabled) { color: var(--yazi); border-bottom-color: var(--cizgi); }
+button.sekme[aria-selected="true"] { color: var(--vurgu); border-bottom-color: var(--vurgu); background: var(--vurgu-acik); }
+.sayi { display: inline-block; min-width: 20px; text-align: center; background: var(--gri-acik); color: var(--soluk);
+  border-radius: 99px; font-size: 11px; font-weight: 600; padding: 1px 7px; margin-left: 7px; }
+button.sekme[aria-selected="true"] .sayi { background: var(--yuzey); color: var(--vurgu); }
+.sayi.canli { background: var(--yesil-acik); color: var(--yesil); }
+.sayi.dikkat { background: var(--sari-acik); color: var(--sari); }
 
 .bildirim { border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; font-weight: 500; }
 .bildirim.iyi { background: var(--yesil-acik); color: var(--yesil); }
 .bildirim.kotu { background: var(--kirmizi-acik); color: var(--kirmizi); }
 
-.duzen { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; align-items: start; }
-@media (max-width: 1320px) { .duzen { grid-template-columns: 1fr; } }
-.tablo-kap { overflow-x: auto; border-radius: 12px; }
+.ozet { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.kart { background: var(--yuzey); border: 1px solid var(--cizgi); border-radius: 12px; padding: 12px 14px; box-shadow: var(--golge); }
+.kart .etiket { font-size: 12px; color: var(--soluk); }
+.kart .deger { font-size: 21px; font-weight: 600; margin-top: 2px; }
+.kart .alt { font-size: 12px; color: var(--soluk); margin-top: 1px; }
+.kart.fable { border-color: var(--mor); }
+.kart.fable .deger { color: var(--mor); }
+
 .panel { background: var(--yuzey); border: 1px solid var(--cizgi); border-radius: 12px; box-shadow: var(--golge); }
 .panel.ic { padding: 14px 16px; }
 .panel + .panel { margin-top: 16px; }
+.tablo-kap { overflow-x: auto; border-radius: 12px; }
+.izgara { display: grid; grid-template-columns: repeat(auto-fit, minmax(440px, 1fr)); gap: 16px; align-items: start; }
+.izgara > .panel + .panel { margin-top: 0; }
+.dar { max-width: 720px; }
+
+.filtre { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 12px; }
+button.cip { border-radius: 99px; padding: 4px 12px; font-size: 13px; color: var(--soluk); }
+button.cip[aria-pressed="true"] { background: var(--vurgu-acik); border-color: var(--vurgu); color: var(--vurgu); font-weight: 600; }
 
 table { width: 100%; border-collapse: collapse; }
-th { text-align: left; font-size: 12px; font-weight: 600; color: var(--soluk); padding: 10px 8px;
-  border-bottom: 1px solid var(--cizgi); background: var(--yuzey-2); }
+th { text-align: left; font-size: 12px; font-weight: 600; color: var(--soluk); padding: 10px 10px;
+  border-bottom: 1px solid var(--cizgi); background: var(--yuzey-2); white-space: nowrap; }
 th:first-child { border-top-left-radius: 12px; } th:last-child { border-top-right-radius: 12px; }
-td { padding: 10px 8px; border-bottom: 1px solid var(--cizgi); vertical-align: middle; }
+td { padding: 10px 10px; border-bottom: 1px solid var(--cizgi); vertical-align: middle; }
 tr:last-child td { border-bottom: 0; }
 tr.aktif td { background: var(--vurgu-acik); }
 tr.durduruldu td:not(.islem) { opacity: .55; }
+tr.gun td { background: var(--yuzey-2); font-size: 12px; font-weight: 600; color: var(--soluk); padding: 6px 10px;
+  text-transform: uppercase; letter-spacing: .05em; }
+th button.sirala { font: inherit; color: inherit; background: none; border: 0; padding: 0; border-radius: 4px;
+  cursor: pointer; white-space: nowrap; text-align: left; }
+th button.sirala:hover { color: var(--vurgu); }
+th button.sirala::after { content: "↕"; margin-left: 4px; opacity: .35; }
+th.secili button.sirala { color: var(--vurgu); }
+th[aria-sort="ascending"] button.sirala::after { content: "▲"; opacity: 1; font-size: 9px; }
+th[aria-sort="descending"] button.sirala::after { content: "▼"; opacity: 1; font-size: 9px; }
 .no { width: 34px; color: var(--soluk); font-variant-numeric: tabular-nums; }
 .hesap b { display: block; font-weight: 600; }
-.hesap small, .sifir small { display: block; color: var(--soluk); font-size: 12px; }
-.kullanim { min-width: 110px; }
+.hesap small, .sifir small, td small { display: block; color: var(--soluk); font-size: 12px; }
+.sifir, td.haftalik { white-space: nowrap; }
+.zaman b { font-variant-numeric: tabular-nums; font-size: 15px; }
+.olcu { min-width: 118px; }
+.olcu.yok { color: var(--soluk); }
 .cubuk { height: 8px; border-radius: 99px; background: var(--gri-acik); overflow: hidden; }
 .cubuk span { display: block; height: 100%; border-radius: 99px; background: var(--yesil); width: var(--y); }
 .cubuk.yakin span { background: var(--sari); }
 .cubuk.dolu span { background: var(--kirmizi); }
+.cubuk.fable span { background: var(--mor); }
+.cubuk.fable.yakin span { background: var(--sari); }
+.cubuk.fable.dolu span { background: var(--kirmizi); }
 .yuzde { display: block; font-size: 12px; color: var(--soluk); margin-top: 3px; font-variant-numeric: tabular-nums; }
-.rozet { display: inline-block; font-size: 12px; font-weight: 600; border-radius: 99px; padding: 2px 9px; }
+.yuzde.dolu { color: var(--kirmizi); font-weight: 600; }
+.yuzde.yakin { color: var(--sari); font-weight: 600; }
+.rozet { display: inline-block; font-size: 12px; font-weight: 600; border-radius: 99px; padding: 2px 9px; white-space: nowrap; }
 .rozet.aktif { background: var(--vurgu); color: #fff; }
 .rozet.hazir { background: var(--yesil-acik); color: var(--yesil); }
 .rozet.dolu { background: var(--kirmizi-acik); color: var(--kirmizi); }
 .rozet.durduruldu { background: var(--gri-acik); color: var(--gri); }
 .rozet.okunamiyor { background: var(--sari-acik); color: var(--sari); }
+.rozet.mor { background: var(--mor-acik); color: var(--mor); }
 .islem { text-align: right; white-space: nowrap; }
 .islem button + button { margin-left: 4px; }
-
-ol.gecisler { list-style: none; margin: 0; padding: 0; }
-ol.gecisler li { display: grid; grid-template-columns: 74px 1fr; gap: 8px; padding: 7px 0; border-bottom: 1px dashed var(--cizgi); font-size: 13px; }
-ol.gecisler li:last-child { border-bottom: 0; }
-ol.gecisler time { color: var(--soluk); font-variant-numeric: tabular-nums; }
-ol.gecisler .neden { color: var(--soluk); font-size: 12px; }
-.ekle { display: flex; gap: 8px; }
-.ekle input { flex: 1; min-width: 0; border: 1px solid var(--cizgi); border-radius: 8px; padding: 7px 10px; font: inherit;
-  background: var(--yuzey-2); color: var(--yazi); }
+.bos { padding: 36px; text-align: center; color: var(--soluk); }
 .ipucu { color: var(--soluk); font-size: 12px; margin: 8px 0 0; }
+.ipucu.kirmizi { color: var(--kirmizi); }
+details.nasil { margin: 0 0 12px; font-size: 13px; color: var(--soluk); }
+details.nasil summary { cursor: pointer; font-weight: 600; width: fit-content; }
+details.nasil p { margin: 8px 0 0; max-width: 90ch; }
+
+.ekle { display: flex; gap: 8px; }
+.ekle input { flex: 1; min-width: 0; }
 .ekle-durum { margin: 10px 0 0; font-size: 13px; font-weight: 500; display: grid; gap: 6px; justify-items: start; }
 .ekle-durum .adim { color: var(--soluk); font-weight: 400; font-size: 12px; }
 .ekle-durum.suruyor { color: var(--sari); } .ekle-durum.bitti { color: var(--yesil); } .ekle-durum.olmadi { color: var(--kirmizi); }
-footer { color: var(--soluk); font-size: 12px; margin-top: 16px; }
-.bos { padding: 40px; text-align: center; color: var(--soluk); }
+.sira-satiri { margin: 0 0 12px; font-weight: 600; color: var(--sari); }
+.eylemler { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px; }
+.gizli-liste { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 12px; font-size: 13px; color: var(--soluk); }
+.pencere-satir { margin: 0 0 8px; }
+.pencere-satir b { font-variant-numeric: tabular-nums; }
+.pencere-satir.sira { font-weight: 600; color: var(--sari); }
+.pencere-satir.hatali { color: var(--kirmizi); font-size: 13px; }
+.cipler { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 10px; }
+.cipler .rozet { font-weight: 500; }
+
+ol.gecisler { list-style: none; margin: 0; padding: 0; }
+.neden { color: var(--soluk); font-size: 12px; }
+
+/* Orkestra */
+.ork-duzen { display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: 16px; align-items: start; }
+@media (max-width: 1220px) { .ork-duzen { grid-template-columns: 1fr; } }
+.ork-sol > .panel + .panel, .ork-sag > .panel + .panel { margin-top: 16px; }
+textarea.hedef { width: 100%; min-height: 104px; resize: vertical; line-height: 1.5; }
+.ork-satir { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
+.ork-satir input[type=text] { flex: 1; min-width: 220px; }
+.ork-durum { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; font-size: 13px; color: var(--soluk); margin-top: 10px; }
+.ork-durum b { color: var(--yazi); font-variant-numeric: tabular-nums; }
+.ajan-kart { border: 1px solid var(--cizgi); border-radius: 10px; padding: 10px 12px; background: var(--yuzey-2); }
+.ajan-kart + .ajan-kart { margin-top: 8px; }
+.ajan-kart.yok { opacity: .6; }
+.ajan-ust { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; }
+.ajan-ust b { margin-right: auto; }
+.ajan-ust label.rol { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; color: var(--soluk); cursor: pointer; }
+.ajan-alt { display: grid; grid-template-columns: 1fr 108px; gap: 8px; margin-top: 8px; }
+.ajan-alt label { display: grid; gap: 3px; font-size: 11px; color: var(--soluk); text-transform: uppercase; letter-spacing: .04em; }
+.ajan-alt select { width: 100%; padding: 5px 8px; font-size: 13px; text-transform: none; letter-spacing: 0; }
+.kota-satir { display: grid; grid-template-columns: 78px 1fr 44px; align-items: center; gap: 8px; font-size: 13px; margin-top: 6px; }
+.kota-satir .cubuk { height: 7px; }
+.kota-satir span:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+.plan-kart { border: 1px solid var(--cizgi); border-radius: 10px; padding: 10px 12px; background: var(--yuzey-2); }
+.plan-kart + .plan-kart { margin-top: 8px; }
+.plan-kart.calisiyor { border-color: var(--sari); }
+.plan-kart.bitti { border-color: var(--yesil); }
+.plan-kart.hata { border-color: var(--kirmizi); }
+.plan-ust { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.plan-ust b { margin-right: auto; }
+.plan-alt { font-size: 12px; color: var(--soluk); margin-top: 4px; }
+ul.yazisma { list-style: none; margin: 0; padding: 0; max-height: 420px; overflow: auto; }
+ul.yazisma li { padding: 7px 0; border-bottom: 1px dashed var(--cizgi); font-size: 13px; }
+ul.yazisma li:last-child { border-bottom: 0; }
+.yaz-ust { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
+.yaz-ust time { color: var(--soluk); font-variant-numeric: tabular-nums; font-size: 12px; }
+.yaz-ust .kim { font-weight: 600; }
+.yaz-ust button { margin-left: auto; padding: 1px 8px; font-size: 12px; }
+.yaz-ust .neden { white-space: nowrap; }
+pre.cikti { margin: 8px 0 0; max-height: 380px; overflow: auto; white-space: pre-wrap; word-break: break-word;
+  font: 12.5px/1.5 "Cascadia Mono", Consolas, monospace; background: var(--yuzey-2); border: 1px solid var(--cizgi);
+  border-radius: 8px; padding: 10px 12px; }
+pre.sonuc { max-height: 520px; font-size: 13px; }
+.alt-sekmeler { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; }
+.baslik-satir { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.baslik-satir h2 { margin: 0; }
+.dar-tablo { max-width: 900px; }
+footer { color: var(--soluk); font-size: 12px; margin-top: 18px; }
 </style>
 </head>
 <body>
@@ -165,10 +232,22 @@ footer { color: var(--soluk); font-size: 12px; margin-top: 16px; }
     </div>
   </header>
 
-  <section class="ozet" id="ozet"></section>
+  <nav class="sekmeler" role="tablist" aria-label="Bölümler" id="sekmeler">
+    <button type="button" class="sekme" role="tab" id="t-hesaplar" data-sekme="hesaplar" aria-controls="s-hesaplar">Hesaplar<span class="sayi" id="sayi-hesaplar"></span></button>
+    <button type="button" class="sekme" role="tab" id="t-yenilenme" data-sekme="yenilenme" aria-controls="s-yenilenme">Haftalık yenilenme<span class="sayi" id="sayi-yenilenme"></span></button>
+    <button type="button" class="sekme" role="tab" id="t-sifirlama" data-sekme="sifirlama" aria-controls="s-sifirlama">Sıfırlama hakkı<span class="sayi" id="sayi-sifirlama"></span></button>
+    <button type="button" class="sekme" role="tab" id="t-pencere" data-sekme="pencere" aria-controls="s-pencere">5 saatlik pencere<span class="sayi" id="sayi-pencere"></span></button>
+    <button type="button" class="sekme" role="tab" id="t-gecisler" data-sekme="gecisler" aria-controls="s-gecisler">Geçişler</button>
+    <button type="button" class="sekme" role="tab" id="t-ekle" data-sekme="ekle" aria-controls="s-ekle">Hesap ekle<span class="sayi" id="sayi-ekle"></span></button>
+    <button type="button" class="sekme" role="tab" id="t-orkestra" data-sekme="orkestra" aria-controls="s-orkestra">Orkestra<span class="sayi" id="sayi-orkestra"></span></button>
+  </nav>
+
   <div id="bildirim" class="bildirim" role="status" aria-live="polite" hidden></div>
 
-  <div class="duzen">
+  <!-- 1. Hesaplar -->
+  <section id="s-hesaplar" role="tabpanel" aria-labelledby="t-hesaplar" hidden>
+    <section class="ozet" id="ozet"></section>
+    <div class="filtre" id="filtre" role="group" aria-label="Duruma göre süz"></div>
     <section class="panel tablo-kap">
       <table>
         <thead><tr>
@@ -178,45 +257,147 @@ footer { color: var(--soluk); font-size: 12px; margin-top: 16px; }
           <th data-alan="sifir"><button type="button" class="sirala">Sıfırlanma</button></th>
           <th data-alan="haftalik" class="haftalik"><button type="button" class="sirala">Haftalık</button></th>
           <th data-alan="hyenilenme" class="haftalik"><button type="button" class="sirala">Haftalık yenilenme</button></th>
+          <th data-alan="fable" class="fable-th"><button type="button" class="sirala">Fable</button></th>
           <th data-alan="durum"><button type="button" class="sirala">Durum</button></th>
           <th></th>
         </tr></thead>
-        <tbody id="hesaplar"><tr><td colspan="7" class="bos">Yükleniyor…</td></tr></tbody>
+        <tbody id="hesaplar"><tr><td colspan="9" class="bos">Yükleniyor…</td></tr></tbody>
       </table>
     </section>
+  </section>
 
-    <aside>
-      <section class="panel ic" id="yenilenmePanel" hidden>
-        <h2>Haftalık yenilenme</h2>
-        <ol id="yenilenme" class="yenilenme"></ol>
-        <p class="ipucu">En yakın yenilenen üstte. Kırmızı: haftalık eşiğin üstünde, o saate kadar geçişte kullanılmaz.</p>
-        <div id="sifirlamaKutu" class="sifirlama"></div>
-      </section>
+  <!-- 2. Haftalık yenilenme -->
+  <section id="s-yenilenme" role="tabpanel" aria-labelledby="t-yenilenme" hidden>
+    <section class="panel tablo-kap">
+      <table>
+        <thead><tr>
+          <th>Yenilenme</th><th>Kalan</th><th>Hesap</th><th>Haftalık</th><th class="fable-th">Fable</th><th>Durum</th>
+        </tr></thead>
+        <tbody id="yenilenme"></tbody>
+      </table>
+    </section>
+    <p class="ipucu" id="yenilenmeNot"></p>
+  </section>
+
+  <!-- 3. Sıfırlama hakkı -->
+  <section id="s-sifirlama" role="tabpanel" aria-labelledby="t-sifirlama" hidden>
+    <details class="nasil">
+      <summary>Nasıl çalışır?</summary>
+      <p>Anthropic'in verdiği sıfırlama hakları claude.ai Kullanım sayfasında, "Limit resets" altındaki "Reset for free" ile kullanılır. "Sıfırla ↗" o hesabın sayfasını kendi penceresinde açar; her hesapla ilk seferde bir kez girersin, sonra hep girili açılır. "Reset for free"a basmak her zaman senin işin: panel sıfırlamayı kendisi yapmaz.</p>
+      <p>Sayfada birden çok hak varsa: yalnız 5 saatlikte dolu hesapta 5 saatliği sıfırlayanı, haftalıkta dolu hesapta tam sıfırlamayı kullan. Haftalığı 1 gün içinde zaten yenilenecek hesap burada listelenmez.</p>
+      <p>Hakkı olmayan (ya da kullanılmış) hesabı sayfada görünce "Hakkı yok"a bas: listeden kalkar. Hak durumunu yalnız claude.ai bilir; panel bunu öğrenemez.</p>
+    </details>
+    <div id="sifirlamaEylem" class="eylemler"></div>
+    <section class="panel tablo-kap">
+      <table>
+        <thead><tr>
+          <th>Sıra</th><th>Hesap</th><th>Neden</th><th>Kendiliğinden açılır</th><th class="haftalik">Haftalık</th><th class="fable-th">Fable</th><th></th>
+        </tr></thead>
+        <tbody id="sifirlama"></tbody>
+      </table>
+    </section>
+    <div id="gizliHak" class="gizli-liste" hidden></div>
+    <p class="ipucu">En geç açılacak hesaptan başlar: sıfırlama en çok orada kazandırır.</p>
+  </section>
+
+  <!-- 4. 5 saatlik pencere -->
+  <section id="s-pencere" role="tabpanel" aria-labelledby="t-pencere" hidden>
+    <div class="izgara">
       <section class="panel ic">
-        <h2>5 saatlik pencereyi başlat</h2>
+        <h2>Başlatma saatleri</h2>
         <form id="pencereForm" class="ekle">
           <input id="pencereSaat" type="text" inputmode="numeric" autocomplete="off" placeholder="08:00, 13:00"
             aria-label="Başlatma saatleri" title="Her gün bu saatlerde boştaki hesapların 5 saatlik penceresi başlar. Birden çoksa virgülle ayır; boş bırakıp Kaydet'e basarsan kapanır.">
           <button type="submit" class="ana">Kaydet</button>
         </form>
-        <div id="pencereKutu" class="pencere"></div>
+        <div id="pencereSaatler" style="margin-top:12px"></div>
+        <div class="eylemler" id="pencereEylem"></div>
         <p class="ipucu">Seçtiğin saatte penceresi sürmeyen her hesaba Haiku ile tek kısa mesaj gider (~900 token, kotadan neredeyse bir şey yemez): 5 saatlik pencere o an başlar, 5 saat sonra sıfırlanır. Penceresi süren, haftalıkta dolu ve durdurulan hesaplar atlanır; aktif giriş ve açık oturumlar değişmez. Bilgisayar o saatte açık olmalı: 30 dakikadan geç uyanırsa o seferlik atlanır.</p>
       </section>
       <section class="panel ic">
-        <h2>Son geçişler</h2>
-        <ol id="gecisler" class="gecisler"></ol>
+        <h2>Son başlatma</h2>
+        <div id="pencereKutu"></div>
       </section>
-      <section class="panel ic">
-        <h2>Hesap ekle</h2>
-        <form id="ekleForm" class="ekle">
-          <input id="eposta" type="email" placeholder="ornek@sirket.com" required>
-          <button type="submit" class="ana">Ekle</button>
-        </form>
-        <p class="ipucu">Tarayıcıda claude.ai'dan çıkış sekmesi ve bir kutu açılır: o hesapla gir, kutuda Tamam'a bas. Kayıtlı bir hesabın girişini tazelemek için de aynı e-postayı yaz.</p>
-        <div id="ekleDurum" class="ekle-durum" hidden></div>
-      </section>
-    </aside>
-  </div>
+    </div>
+  </section>
+
+  <!-- 5. Geçişler -->
+  <section id="s-gecisler" role="tabpanel" aria-labelledby="t-gecisler" hidden>
+    <section class="panel tablo-kap dar-tablo">
+      <table>
+        <thead><tr><th>Zaman</th><th>Geçiş</th><th>Neden</th></tr></thead>
+        <tbody id="gecisler"></tbody>
+      </table>
+    </section>
+    <p class="ipucu">Son 40 geçiş: otomatik (eşikte, doldu), hızlı tetik ve elle yapılanlar.</p>
+  </section>
+
+  <!-- 6. Hesap ekle -->
+  <section id="s-ekle" role="tabpanel" aria-labelledby="t-ekle" hidden>
+    <section class="panel ic dar">
+      <h2>Hesap ekle</h2>
+      <form id="ekleForm" class="ekle">
+        <input id="eposta" type="email" placeholder="ornek@sirket.com" required>
+        <button type="submit" class="ana">Ekle</button>
+      </form>
+      <p class="ipucu">Tarayıcıda claude.ai'dan çıkış sekmesi ve bir kutu açılır: o hesapla gir, kutuda Tamam'a bas. Kayıtlı bir hesabın girişini tazelemek için de aynı e-postayı yaz.</p>
+      <div id="ekleDurum" class="ekle-durum" hidden></div>
+    </section>
+  </section>
+
+  <!-- 7. Orkestra -->
+  <section id="s-orkestra" role="tabpanel" aria-labelledby="t-orkestra" hidden>
+    <div class="ork-duzen">
+      <div class="ork-sol">
+        <section class="panel ic">
+          <h2>Şefe görev ver</h2>
+          <textarea id="orkHedef" class="hedef" placeholder="Şefe vermek istediğin hedefi yaz. Örn: Kullanıcı profil servisini JWT ile doğrula ve testlerini yaz"
+            aria-label="Orkestra görevi"></textarea>
+          <div class="ork-satir">
+            <input id="orkKlasor" type="text" autocomplete="off" placeholder="Çalışma klasörü (boş bırakılırsa boş bir klasör kullanılır)" aria-label="Çalışma klasörü"
+              title="Ajanlar bu klasörde çalışır. Tam yol yaz, örn. D:\bireysel\proje. Boş bırakırsan projelerine dokunmayan boş bir klasör kullanılır.">
+            <button id="orkBaslat" class="ana" type="button">▶ Başlat</button>
+            <button id="orkDurdur" class="tehlike" type="button" hidden>■ Durdur</button>
+          </div>
+          <div class="ork-durum" id="orkDurum"></div>
+          <p class="ipucu">Ctrl+Enter ile başlar. Şef hedefi 1-3 alt göreve böler, işçilere dağıtır, sonuçları birleştirir. İşçi CLI'lar onay istemeden çalışır: çalışma klasörünü doğru seç.</p>
+        </section>
+        <section class="panel ic" id="orkHataKutu" hidden>
+          <h2>Hata</h2>
+          <pre class="cikti" id="orkHata"></pre>
+        </section>
+        <section class="panel ic">
+          <h2>Plan</h2>
+          <div id="orkPlan"><p class="ipucu" style="margin:0">Şefe görev verince alt görevler burada görünür.</p></div>
+        </section>
+        <section class="panel ic">
+          <h2>Ajanlar arası yazışma</h2>
+          <ul class="yazisma" id="orkMesajlar"><li class="neden">Henüz mesaj yok.</li></ul>
+        </section>
+        <section class="panel ic">
+          <div class="baslik-satir"><h2>Sonuç (şef sentezi)</h2><button class="kucuk" id="orkKopyala" type="button" hidden>Kopyala</button></div>
+          <pre class="cikti sonuc" id="orkSonuc" style="margin:0">Sonuç çalışma bitince burada.</pre>
+        </section>
+        <section class="panel ic">
+          <h2>Canlı çıktı</h2>
+          <div class="alt-sekmeler" id="orkAkimSekmeleri"></div>
+          <pre class="cikti" id="orkAkim">Seçili ajanın çıktısı çalışırken burada akar.</pre>
+        </section>
+      </div>
+      <aside class="ork-sag">
+        <section class="panel ic">
+          <div class="baslik-satir"><h2>Ajanlar</h2><button class="kucuk" id="orkTara" type="button"
+            title="CLI'lardan model ve akıl yürütme listesini yeniden okur (yarım dakika sürebilir)">Modelleri tara</button></div>
+          <div id="orkAjanlar"><p class="ipucu" style="margin:0">Yükleniyor…</p></div>
+          <p class="ipucu">Her ajan için "Şef" ya da "İşçi" seç. Şef planı yapar ve sentezler, işçiler alt görevleri yürütür.</p>
+        </section>
+        <section class="panel ic">
+          <h2>Claude kotası</h2>
+          <div id="orkKota"></div>
+        </section>
+      </aside>
+    </div>
+  </section>
 
   <footer id="alt"></footer>
 </div>
@@ -224,8 +405,11 @@ footer { color: var(--soluk); font-size: 12px; margin-top: 16px; }
 <script>
 const ANAHTAR = new URLSearchParams(location.search).get('k');
 const DURUM_ADI = { aktif: 'Aktif', hazir: 'Hazır', dolu: 'Dolu', durduruldu: 'Durduruldu', okunamiyor: 'Okunamıyor' };
+const SEKMELER = ['hesaplar', 'yenilenme', 'sifirlama', 'pencere', 'gecisler', 'ekle', 'orkestra'];
 let veri = null;
 let mesgul = false;
+
+const $ = id => document.getElementById(id);
 
 async function api(yol, govde) {
   const r = await fetch(yol, {
@@ -240,7 +424,7 @@ async function api(yol, govde) {
 }
 
 function bildir(metin, iyi) {
-  const k = document.getElementById('bildirim');
+  const k = $('bildirim');
   k.textContent = metin;
   k.className = 'bildirim ' + (iyi ? 'iyi' : 'kotu');
   k.hidden = false;
@@ -257,14 +441,17 @@ function saat(iso) {
   return dakikaya(iso).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
 }
 
-// "bugün 15:00", "yarın 03:00", "Çar 12.11 22:00"
-function gunSaat(iso) {
+// "bugün", "yarın", "Çar 12.11"
+function gunAdi(iso) {
   const z = dakikaya(iso);
   const gun = d => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
   const fark = Math.round((gun(z) - gun(new Date())) / 86400000);
-  const g = fark === 0 ? 'bugün' : fark === 1 ? 'yarın'
+  return fark === 0 ? 'bugün' : fark === 1 ? 'yarın'
     : z.toLocaleDateString('tr-TR', { weekday: 'short' }) + ' ' + z.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit' });
-  return g + ' ' + saat(iso);
+}
+
+function gunSaat(iso) {
+  return gunAdi(iso) + ' ' + saat(iso);
 }
 
 function kalan(iso) {
@@ -275,13 +462,19 @@ function kalan(iso) {
   return (sa ? sa + ' sa ' : '') + (dk % 60) + ' dk sonra';
 }
 
-// Dar listede: "45 dk", "5 sa", "3 gün"
+// Dar yerde: "45 dk", "5 sa", "3 gün"
 function kisaKalan(iso) {
   const dk = Math.round((new Date(iso) - Date.now()) / 60000);
   if (dk <= 0) return 'şimdi';
   if (dk < 60) return dk + ' dk';
   if (dk < 1440) return Math.floor(dk / 60) + ' sa';
   return Math.floor(dk / 1440) + ' gün';
+}
+
+function sureYazi(sn) {
+  sn = Math.max(0, Math.round(sn || 0));
+  const dk = Math.floor(sn / 60);
+  return dk ? dk + ' dk ' + String(sn % 60).padStart(2, '0') + ' sn' : sn + ' sn';
 }
 
 function el(etiket, ozellik = {}, ...cocuklar) {
@@ -296,6 +489,51 @@ function el(etiket, ozellik = {}, ...cocuklar) {
   return e;
 }
 
+// ── Sekmeler ───────────────────────────────────────────────────────────────────────────────────
+let sekme = 'hesaplar';
+try {
+  const ilk = location.hash.slice(1) || localStorage.getItem('sekme');
+  if (SEKMELER.includes(ilk)) sekme = ilk;
+} catch { /* gizli pencere vb.: ilk sekme */ }
+
+function sekmeSec(ad, odakla) {
+  if (!SEKMELER.includes(ad)) return;
+  sekme = ad;
+  for (const s of SEKMELER) {
+    const secili = s === ad;
+    const dugme = $('t-' + s);
+    dugme.setAttribute('aria-selected', secili ? 'true' : 'false');
+    dugme.tabIndex = secili ? 0 : -1;
+    $('s-' + s).hidden = !secili;
+  }
+  if (odakla) $('t-' + ad).focus();
+  try { localStorage.setItem('sekme', ad); history.replaceState(null, '', '#' + ad); } catch { /* hatırlanmasa da çalışır */ }
+  if (ad === 'orkestra') orkAc(); else clearTimeout(ork.zamanlayici);
+}
+
+$('sekmeler').addEventListener('click', ev => {
+  const d = ev.target.closest('button.sekme');
+  if (d) sekmeSec(d.dataset.sekme, false);
+});
+$('sekmeler').addEventListener('keydown', ev => {
+  const yon = { ArrowRight: 1, ArrowLeft: -1 }[ev.key];
+  if (yon) {
+    ev.preventDefault();
+    sekmeSec(SEKMELER[(SEKMELER.indexOf(sekme) + yon + SEKMELER.length) % SEKMELER.length], true);
+  } else if (ev.key === 'Home' || ev.key === 'End') {
+    ev.preventDefault();
+    sekmeSec(SEKMELER[ev.key === 'Home' ? 0 : SEKMELER.length - 1], true);
+  }
+});
+
+function sayi(sekmeAdi, deger, sinif) {
+  const e = $('sayi-' + sekmeAdi);
+  e.textContent = deger == null || deger === 0 ? '' : String(deger);
+  e.hidden = deger == null || deger === 0;
+  e.className = 'sayi' + (sinif ? ' ' + sinif : '');
+}
+
+// ── Hesaplar: sıralama, süzme ──────────────────────────────────────────────────────────────────
 // Tablo sıralaması: başlığa tıklayınca o sütuna göre artan, yeniden tıklayınca azalan.
 // "Durum" sunucunun sırası (aktif, hazır, dolu: en erken açılan önce). Seçim bu tarayıcıda hatırlanır.
 const ADLAR = new Intl.Collator('tr', { numeric: true, sensitivity: 'base' });  // tahaakgul2 < tahaakgul10
@@ -307,6 +545,7 @@ const SIRALAMA = {
   sifir: h => zaman(h.sifirlanma),
   haftalik: h => h.haftalik,
   hyenilenme: h => zaman(h.haftalik_sifirlanma),
+  fable: h => h.fable,
 };
 let siralama = { alan: 'durum', yon: 1 };
 try {
@@ -334,192 +573,117 @@ function basliklariIsaretle() {
   });
 }
 
-// Sıfırlama hakkı işe yarar mı (sunucudaki sifirlanabilir() ile aynı kural): yalnız 5 saatlikte
-// dolu hesap her zaman; haftalıkta dolu hesap yalnız haftalığı 1 günden uzaktaysa (5 saatlik
-// sıfırlama haftalık doluyken hesabı açmaz, yakında yenilenecek hesaba tam sıfırlama harcanmasın).
-function sifirlanabilir(h) {
-  if (!(h.aktif || h.durum === 'dolu')) return false;
-  if (h.haftalik_dolu) return Boolean(h.haftalik_sifirlanma) && Date.parse(h.haftalik_sifirlanma) - Date.now() > 864e5;
-  return Boolean(h.saatlik_dolu);
+const FILTRELER = [
+  ['hepsi', 'Tümü', () => true],
+  ['hazir', 'Aktif + hazır', h => h.durum === 'aktif' || h.durum === 'hazir'],
+  ['dolu', 'Dolu', h => h.durum === 'dolu'],
+  ['durduruldu', 'Durdurulan', h => h.durum === 'durduruldu'],
+  ['okunamiyor', 'Okunamıyor', h => h.durum === 'okunamiyor'],
+];
+let filtre = 'hepsi';
+try {
+  const f = localStorage.getItem('filtre');
+  if (FILTRELER.some(x => x[0] === f)) filtre = f;
+} catch { /* varsayılan */ }
+
+// 0-100 yüzdeyi çubuk + yazıyla çizer; sinif: '', 'yakin', 'dolu' (+ 'fable' rengi için ekstra).
+function olcu(y, sinif, ekstra) {
+  if (y == null) return el('div', { class: 'olcu yok' }, '—');
+  return el('div', { class: 'olcu' },
+    el('div', { class: 'cubuk ' + (ekstra || '') + ' ' + sinif }, el('span', { style: '--y:' + Math.min(y, 100) + '%' })),
+    el('span', { class: 'yuzde ' + sinif }, '%' + y));
 }
 
-function sifirlaIpucu(h) {
-  return h.haftalik_dolu
-    ? 'Haftalıkta dolu (' + gunSaat(h.haftalik_sifirlanma) + ' yenilenir): claude.ai Kullanım sayfasında tam sıfırlamayı kullan'
-    : '5 saatlikte dolu' + (h.sifirlanma ? ' (' + saat(h.sifirlanma) + '\'de kendiliğinden açılır)' : '') +
-      ': claude.ai Kullanım sayfasında "Limit resets" altındaki "Reset for free"';
+// Eşiklere göre renk: 5 saatlik eşiğe 15 puan, haftalık eşiğe 10 puan kala sarı. Haftalık eşik boşsa
+// cswap haftalıkta da 5 saatlik eşiği kullanıyor. Fable de haftalık sınır gibi değerlendirilir.
+function esikler(v) {
+  return { saatlik: v.esik, haftalik: v.haftalik_esik != null ? v.haftalik_esik : v.esik };
+}
+const sinifla = (y, sinir, pay) => (y == null ? '' : y >= sinir ? 'dolu' : y >= sinir - pay ? 'yakin' : '');
+
+function kapsamIpucu(h) {
+  return (h.kapsam || []).map(k => k.ad + ' %' + (k.yuzde == null ? '?' : k.yuzde) + (k.sifirlanma ? ' (' + gunSaat(k.sifirlanma) + ' yenilenir)' : '')).join(' · ');
 }
 
-// Sıfırlama hakkı kutusu (Haftalık yenilenme panelinin altında).
-function sifirlamaCiz(s, mesgul) {
-  const kutu = document.getElementById('sifirlamaKutu');
-  const baslik = el('h3', {}, 'Sıfırlama hakkı');
-  if (s.durum === 'suruyor') {
-    kutu.replaceChildren(baslik,
-      el('p', { class: 'sira' }, 'Şu an: ' + (s.simdiki || '…') + ' (' + (s.sira_no || 0) + '/' + (s.hesaplar || []).length + ')'),
-      el('p', { class: 'ipucu' }, 'Açılan pencerede "Limit resets" altındaki "Reset for free"a bas, sonra pencereyi kapat; sıradaki kendiliğinden açılır.'),
-      el('button', { class: 'kucuk tehlike', disabled: mesgul,
-        onclick: () => islem('sifirla-iptal', {}, 'Sıra durduruluyor…') }, 'Sırayı durdur'));
-    return;
-  }
-  kutu.replaceChildren(...[baslik,
-    el('p', { class: 'ipucu' }, 'Anthropic\'in verdiği sıfırlama hakları claude.ai Kullanım sayfasında, "Limit resets" altındaki ' +
-      '"Reset for free" ile kullanılır. "Sıfırla ↗" dolu satırlarda (5 saatlikte ya da haftalıkta) çıkar, o hesabın ' +
-      'sayfasını kendi penceresinde açar; her hesapla ilk seferde bir kez girersin, sonra hep girili açılır.'),
-    el('p', { class: 'ipucu' }, 'Sayfada birden çok hak varsa: yalnız 5 saatlikte dolu hesapta 5 saatliği sıfırlayanı, ' +
-      'haftalıkta dolu hesapta tam sıfırlamayı kullan. Haftalığı 1 gün içinde zaten yenilenecek hesapta düğme çıkmaz.'),
-    el('button', { class: 'kucuk ana', disabled: mesgul,
-      onclick: () => {
-        if (confirm('Dolu hesapların claude.ai Kullanım sayfası sırayla açılsın mı?\n\n' +
-            'Her pencerede "Reset for free"a basıp pencereyi kapatırsın, sıradaki kendiliğinden açılır. ' +
-            'Haftalıkta dolu olup 24 saat içinde zaten yenilenecek hesaplar atlanır.'))
-          islem('sifirla-sira', {}, 'Sıra hazırlanıyor…');
-      } }, 'Dolu hesaplarda sırayla aç'),
-    el('p', { class: 'ipucu' }, 'En geç açılacak hesaptan başlar: sıfırlama en çok orada kazandırır.'),
-    s.durum === 'bitti' ? el('p', { class: 'ipucu' }, 'Son sıra bitti: ' + (s.hesaplar || []).join(', ')) : null,
-    s.durum === 'iptal' ? el('p', { class: 'ipucu' }, 'Son sıra durduruldu.') : null,
-  ].filter(Boolean));  // replaceChildren null'u "null" yazısı olarak basar
-}
-
-// 5 saatlik pencereyi başlatma kutusu: kayıtlı saatler, Şimdi başlat, süren ya da son başlatma.
-function pencereCiz(p, mesgul) {
-  if (!pencereDegisti) document.getElementById('pencereSaat').value = (p.saatler || []).join(', ');
-  document.querySelector('#pencereForm button').disabled = mesgul;
-  const son = p.son || {};
-  const satirlar = [
-    el('p', { class: 'saatler' }, ...((p.saatler || []).length
-      ? ['Her gün ', ...p.saatler.flatMap((s, i) => [i ? ' · ' : '', el('b', {}, s)])]
-      : ['Kayıtlı saat yok: yalnız elle başlatılır.'])),
-  ];
-  if (p.calisiyor) {
-    satirlar.push(el('p', { class: 'sira' }, son.simdiki
-      ? 'Başlatılıyor: ' + son.simdiki + ' (' + son.sira_no + '/' + son.toplam + ')'
-      : 'Başlatılıyor…'));
-  } else {
-    satirlar.push(el('button', { class: 'kucuk', disabled: mesgul,
-      onclick: () => {
-        if (confirm('Penceresi sürmeyen hesapların 5 saatlik penceresi şimdi başlasın mı?\n\n' +
-            'Her birine Haiku ile tek kısa mesaj gider; pencereleri şu andan 5 saat sonra sıfırlanır. ' +
-            'Penceresi süren, haftalıkta dolu ve durdurulan hesaplar atlanır.'))
-          islem('pencere-simdi', {}, 'Başlatma açılıyor…');
-      } }, 'Şimdi başlat'));
-  }
-  if (!p.calisiyor && son.durum) {
-    const ne = son.elle ? ' (elle)' : '';
-    const baslayan = son.baslayan || [], hatali = son.hatali || [], atlanan = son.atlanan || [];
-    if (son.durum === 'bitti' || son.durum === 'yarida') {
-      const nedenler = {};
-      atlanan.forEach(a => { nedenler[a.neden] = (nedenler[a.neden] || 0) + 1; });
-      const atlananYazi = Object.entries(nedenler).map(([n, s]) => n + ' ' + s).join(', ');
-      satirlar.push(el('p', { class: 'son', title: baslayan.length ? 'Başlayan: ' + baslayan.join(', ') : '' },
-        'Son: ' + gunSaat(son.basladi) + ne + ' · ' + baslayan.length + ' hesap başladı' +
-        (son.durum === 'yarida' ? ', yarıda kaldı' : '') +
-        (atlanan.length ? ' · atlanan: ' + atlananYazi : '')));
-      if (hatali.length) {
-        satirlar.push(el('p', { class: 'hatali' }, 'Başlamayan: ' + hatali.map(h => h.ad + ' (' + h.mesaj + ')').join(', ')));
-      }
-    } else if (son.durum === 'gec') {
-      satirlar.push(el('p', { class: 'son' }, 'Son tetik ' + gunSaat(son.basladi) + ': ' + son.mesaj +
-        ' (bilgisayar o saatte açık değildi).'));
-    } else if (son.durum === 'hata') {
-      satirlar.push(el('p', { class: 'hatali' }, 'Son başlatma ' + gunSaat(son.basladi) + ': ' + (son.mesaj || 'hata')));
-    }
-  }
-  document.getElementById('pencereKutu').replaceChildren(...satirlar);
-}
-
-function kart(etiket, deger, alt) {
-  return el('div', { class: 'kart' }, el('div', { class: 'etiket' }, etiket),
+function kart(etiket, deger, alt, sinif) {
+  return el('div', { class: 'kart ' + (sinif || '') }, el('div', { class: 'etiket' }, etiket),
     el('div', { class: 'deger' }, deger), alt ? el('div', { class: 'alt' }, alt) : null);
 }
 
-function ciz() {
-  const v = veri;
-  // Yazılmış ama kaydedilmemiş eşik yoklamada ezilmesin: önceden yalnız odaktaki kutu
-  // korunuyordu; haftalığı yazıp 5 saatlik kutuya geçince haftalık eski değere dönüyor,
-  // Kaydet eski değeri kaydediyordu.
-  if (!esikDegisti) {
-    document.getElementById('esik').value = v.esik;
-    document.getElementById('haftalikEsik').value = v.haftalik_esik != null ? v.haftalik_esik : '';
-  }
-
-  const gorev = document.getElementById('gorev');
-  if (v.gorev) {
-    gorev.textContent = 'Otomatik geçiş çalışıyor · eşikler: 5 saat %' + v.esik +
-      (v.haftalik_esik != null ? ' · haftalık %' + v.haftalik_esik : ' · haftalık: 5 saatlikle aynı');
-  } else {
-    gorev.textContent = 'Otomatik geçiş çalışmıyor';
-  }
-  gorev.classList.toggle('kapali', !v.gorev);
-
-  const aktif = v.hesaplar.find(h => h.aktif);
-  const hazir = v.hesaplar.filter(h => h.durum === 'hazir');
+function ozetCiz(v) {
+  const hs = v.hesaplar;
+  const aktif = hs.find(h => h.aktif);
+  const hazir = hs.filter(h => h.durum === 'hazir');
   // Dolu hesap haftalıkta doluysa 5 saatlik sıfırlanınca değil haftalık yenilenince açılır (acilma).
   const acilma = h => h.acilma || h.sifirlanma || '';
-  const dolu = v.hesaplar.filter(h => h.durum === 'dolu' && acilma(h)).sort((a, b) => acilma(a).localeCompare(acilma(b)));
-  const doluSayisi = v.hesaplar.filter(h => h.durum === 'dolu').length;
-  const haftalikDolu = v.hesaplar.filter(h => h.haftalik_dolu && h.haftalik_sifirlanma)
+  const dolu = hs.filter(h => h.durum === 'dolu' && acilma(h)).sort((a, b) => acilma(a).localeCompare(acilma(b)));
+  const doluSayisi = hs.filter(h => h.durum === 'dolu').length;
+  const haftalikDolu = hs.filter(h => h.haftalik_dolu && h.haftalik_sifirlanma)
     .sort((a, b) => a.haftalik_sifirlanma.localeCompare(b.haftalik_sifirlanma));
-  const durdurulan = v.hesaplar.filter(h => h.durduruldu);
-  const ozet = document.getElementById('ozet');
-  ozet.replaceChildren(
+  const durdurulan = hs.filter(h => h.durduruldu);
+  // Haftalığı dolu hesabın Fable yüzdesi (sıfırlanmışsa 0) bir şey ifade etmez: o hesap kullanılamıyor.
+  const fableli = hs.filter(h => h.fable != null && !h.durduruldu && !h.haftalik_dolu);
+  const enBos = fableli.reduce((m, h) => (m == null || h.fable < m.fable ? h : m), null);
+  const ort = fableli.length ? Math.round(fableli.reduce((t, h) => t + h.fable, 0) / fableli.length) : null;
+  const kartlar = [
     kart('Aktif hesap', aktif ? aktif.ad : '—', aktif && aktif.yuzde != null
       ? '5 saat %' + aktif.yuzde + (aktif.haftalik != null ? ' · hafta %' + aktif.haftalik : '') : ''),
     kart('Hazır', hazir.length + ' hesap', 'eşiğin altında'),
     kart('Dolu', doluSayisi + ' hesap', dolu.length ? 'ilk açılan: ' + dolu[0].ad + ' ' + gunSaat(acilma(dolu[0])) : ''),
     kart('Haftalıkta dolu', haftalikDolu.length + ' hesap', haftalikDolu.length
       ? 'ilk yenilenen: ' + haftalikDolu[0].ad + ' ' + gunSaat(haftalikDolu[0].haftalik_sifirlanma) : 'haftalık eşiğin altında'),
-    kart('Durdurulan', durdurulan.length + ' hesap', durdurulan.map(h => h.ad).join(', ')),
-  );
+  ];
+  if (fableli.length || (aktif && aktif.fable != null)) {
+    kartlar.push(kart('Fable kullanımı', aktif && aktif.fable != null ? '%' + aktif.fable : '—',
+      (aktif && aktif.fable != null ? 'aktif hesap' : '') + (enBos ? (aktif && aktif.fable != null ? ' · ' : '') +
+        'en boş: ' + enBos.ad + ' %' + enBos.fable + ' · kullanılabilir hesapların ortalaması %' + ort : ''), 'fable'));
+  }
+  kartlar.push(kart('Durdurulan', durdurulan.length + ' hesap', durdurulan.map(h => h.ad).join(', ')));
+  $('ozet').replaceChildren(...kartlar);
+}
 
-  // Haftalık yenilenme takibi: her hesabın haftalığı hangi gün saat kaçta sıfırlanıyor.
-  const yenilenme = v.hesaplar.filter(h => h.haftalik_sifirlanma)
-    .sort((a, b) => a.haftalik_sifirlanma.localeCompare(b.haftalik_sifirlanma));
-  document.getElementById('yenilenmePanel').hidden = !yenilenme.length;
-  document.getElementById('yenilenme').replaceChildren(...yenilenme.map(h =>
-    el('li', { class: (h.haftalik_dolu ? 'dolu' : '') + (h.aktif ? ' aktif' : ''), title: kalan(h.haftalik_sifirlanma) },
-      el('time', {}, gunSaat(h.haftalik_sifirlanma)),
-      el('span', {}, h.ad + ' ', el('span', { class: 'y' }, '%' + h.haftalik)),
-      el('span', { class: 'kalan' }, kisaKalan(h.haftalik_sifirlanma)))));
-
-  // Aynı anda tek giriş yapılabilir: ikincisi ilkinin giriş dosyasının üstüne yazardı.
-  const eklemeSuruyor = (v.ekleme || {}).durum === 'suruyor';
-  sifirlamaCiz(v.sifirlama || {}, mesgul);
-  pencereCiz(v.pencere || {}, mesgul);
+function hesapTablosuCiz(v) {
+  const hs = v.hesaplar;
+  const e = esikler(v);
   // Haftalık sınırı Anthropic çoğu hesapta göndermiyor; hiçbirinde yoksa ve eşik girilmediyse sütun boşuna yer kaplamasın.
-  const haftalikVar = v.hesaplar.some(h => h.haftalik != null) || Boolean(v.haftalik_esik);
-  document.querySelectorAll('th.haftalik').forEach(t => { t.hidden = !haftalikVar; });
+  const haftalikVar = hs.some(h => h.haftalik != null) || Boolean(v.haftalik_esik);
+  const fableVar = hs.some(h => h.fable != null);
+  document.querySelectorAll('#s-hesaplar th.haftalik').forEach(t => { t.hidden = !haftalikVar; });
+  document.querySelectorAll('#s-hesaplar th.fable-th').forEach(t => { t.hidden = !fableVar; });
   basliklariIsaretle();
-  const govde = document.getElementById('hesaplar');
-  govde.replaceChildren(...sirali(v.hesaplar).map(h => {
+
+  const sayilar = Object.fromEntries(FILTRELER.map(([k, , fn]) => [k, hs.filter(fn).length]));
+  if (!sayilar[filtre]) filtre = 'hepsi';  // seçili süzgeçte hesap kalmadıysa tümüne dön
+  $('filtre').replaceChildren(...FILTRELER.filter(([k]) => k === 'hepsi' || sayilar[k]).map(([k, ad]) =>
+    el('button', { type: 'button', class: 'cip', 'aria-pressed': k === filtre ? 'true' : 'false',
+      onclick: () => {
+        filtre = k;
+        try { localStorage.setItem('filtre', k); } catch { /* hatırlanmasa da süzer */ }
+        if (veri) ciz();
+      } }, ad + ' (' + sayilar[k] + ')')));
+
+  const suzgec = FILTRELER.find(f => f[0] === filtre)[2];
+  const eklemeSuruyor = (v.ekleme || {}).durum === 'suruyor';
+  const satirlar = sirali(hs).filter(suzgec).map(h => {
     const y = h.yuzde == null ? 0 : h.yuzde;
-    const sinif = y >= v.esik ? 'dolu' : (y >= v.esik - 15 ? 'yakin' : '');
     const kullanim = h.yuzde == null
       ? el('td', { class: 'kullanim' }, el('span', { class: 'yuzde' }, 'okunamadı' + (h.hata ? ' (' + h.hata + ')' : '')))
-      : el('td', { class: 'kullanim' }, el('div', { class: 'cubuk ' + sinif }, el('span', { style: '--y:' + Math.min(y, 100) + '%' })),
-          el('span', { class: 'yuzde' }, '%' + y));
+      : el('td', { class: 'kullanim' }, olcu(y, sinifla(y, e.saatlik, 15)));
     const sifir = h.sifirlanma
       ? el('td', { class: 'sifir' }, saat(h.sifirlanma), el('small', {}, kalan(h.sifirlanma)))
       : el('td', { class: 'sifir' }, '—', el('small', {}, h.yuzde === 0 ? 'kullanılmadı' : ''));
-    let haftalikHucre = null, yenilenmeHucre = null;
+    const hucreler = [];
     if (haftalikVar) {
-      if (h.haftalik == null) {
-        haftalikHucre = el('td', { class: 'haftalik' }, '—');
-      } else {
-        // Haftalık eşik boşsa cswap haftalıkta da 5 saatlik eşiği kullanıyor.
-        const hSinir = v.haftalik_esik != null ? v.haftalik_esik : v.esik;
-        const hSinif = h.haftalik >= hSinir ? 'dolu' : (h.haftalik >= hSinir - 10 ? 'yakin' : '');
-        haftalikHucre = el('td', { class: 'haftalik' }, el('span', { class: 'haftalik-deger ' + hSinif }, '%' + h.haftalik));
-      }
-      yenilenmeHucre = h.haftalik_sifirlanma
+      hucreler.push(el('td', { class: 'haftalik' }, olcu(h.haftalik, sinifla(h.haftalik, e.haftalik, 10))));
+      hucreler.push(h.haftalik_sifirlanma
         ? el('td', { class: 'haftalik' }, gunSaat(h.haftalik_sifirlanma), el('small', {}, kalan(h.haftalik_sifirlanma)))
-        : el('td', { class: 'haftalik' }, '—');
+        : el('td', { class: 'haftalik' }, '—'));
     }
+    if (fableVar) hucreler.push(el('td', { class: 'fable', title: kapsamIpucu(h) }, olcu(h.fable, sinifla(h.fable, e.haftalik, 10), 'fable')));
     return el('tr', { class: h.durum },
       el('td', { class: 'no' }, String(h.no)),
       el('td', { class: 'hesap' }, el('b', {}, h.ad), el('small', {}, h.kurum)),
-      kullanim, sifir,
-      haftalikHucre, yenilenmeHucre,
+      kullanim, sifir, ...hucreler,
       el('td', {}, el('span', { class: 'rozet ' + h.durum }, DURUM_ADI[h.durum])),
       el('td', { class: 'islem' },
         // Okunamayan hesabın girişi çoğunlukla ölmüştür; tek tıkla yeniden giriş.
@@ -531,12 +695,6 @@ function ciz() {
           : null,
         el('button', { class: 'kucuk', disabled: h.aktif || mesgul, title: 'Bu hesaba hemen geç',
           onclick: () => islem('gec', { no: h.no }, h.ad + ' hesabına geçiliyor…') }, 'Geç'),
-        // Sıfırla yalnız işe yaradığı yerde: dolu hesap (sıradaki seçimle aynı kural, sifirlanabilir).
-        // Bu hesabın claude.ai Kullanım sayfası kendi tarayıcı penceresinde açılır; "Reset for free"a orada basılır.
-        sifirlanabilir(h)
-          ? el('button', { class: 'kucuk ana', disabled: mesgul, title: sifirlaIpucu(h),
-              onclick: () => islem('claude-ai', { no: h.no }, h.ad + ' claude.ai\'da açılıyor…') }, 'Sıfırla ↗')
-          : null,
         h.durduruldu
           ? el('button', { class: 'kucuk', disabled: mesgul, title: 'Otomatik geçiş sırasına geri al',
               onclick: () => islem('ac', { no: h.no }, h.ad + ' açılıyor…') }, 'Aç')
@@ -549,31 +707,214 @@ function ciz() {
               islem('sil', { no: h.no }, h.ad + ' siliniyor…');
           } }, 'Sil')),
     );
-  }));
+  });
+  $('hesaplar').replaceChildren(...(satirlar.length ? satirlar
+    : [el('tr', {}, el('td', { colspan: 9, class: 'bos' }, 'Bu süzgeçte hesap yok.'))]));
+}
 
-  const liste = document.getElementById('gecisler');
-  liste.replaceChildren(...(v.gecisler.length ? v.gecisler.map(g => {
+// ── Haftalık yenilenme ─────────────────────────────────────────────────────────────────────────
+function yenilenmeCiz(v) {
+  const e = esikler(v);
+  const hs = v.hesaplar;
+  // Yenilenme zamanı olmayan hesaplar listelenmez.
+  const liste = hs.filter(h => h.haftalik_sifirlanma).sort((a, b) => a.haftalik_sifirlanma.localeCompare(b.haftalik_sifirlanma));
+  const fableVar = hs.some(h => h.fable != null);
+  document.querySelectorAll('#s-yenilenme th.fable-th').forEach(t => { t.hidden = !fableVar; });
+  const govde = [];
+  let sonGun = null;
+  for (const h of liste) {
+    const gun = dakikaya(h.haftalik_sifirlanma).toDateString();
+    if (gun !== sonGun) {
+      sonGun = gun;
+      const kac = liste.filter(x => dakikaya(x.haftalik_sifirlanma).toDateString() === gun).length;
+      govde.push(el('tr', { class: 'gun' }, el('td', { colspan: fableVar ? 6 : 5 }, gunAdi(h.haftalik_sifirlanma) + ' · ' + kac + ' hesap')));
+    }
+    const dolu = h.haftalik_dolu;
+    govde.push(el('tr', { class: (h.aktif ? 'aktif ' : '') + (h.durduruldu ? 'durduruldu' : '') },
+      el('td', { class: 'zaman' }, el('b', {}, saat(h.haftalik_sifirlanma))),
+      el('td', { class: 'sifir' }, kalan(h.haftalik_sifirlanma)),
+      el('td', { class: 'hesap' }, el('b', {}, h.ad), el('small', {}, h.kurum)),
+      el('td', { class: 'haftalik' }, olcu(h.haftalik, sinifla(h.haftalik, e.haftalik, 10))),
+      fableVar ? el('td', { class: 'fable', title: kapsamIpucu(h) }, olcu(h.fable, sinifla(h.fable, e.haftalik, 10), 'fable')) : null,
+      el('td', {}, el('span', { class: 'rozet ' + (h.durduruldu ? 'durduruldu' : dolu ? 'dolu' : 'hazir') },
+        h.durduruldu ? 'Durduruldu' : dolu ? 'Eşikte: kullanılmaz' : 'Kullanılabilir'))));
+  }
+  $('yenilenme').replaceChildren(...(govde.length ? govde
+    : [el('tr', {}, el('td', { colspan: 6, class: 'bos' }, 'Haftalık yenilenme saati bilinen hesap yok.'))]));
+  const bilinmeyen = hs.length - liste.length;
+  $('yenilenmeNot').textContent = 'En yakın yenilenen üstte. Kırmızı: haftalık eşiğin (%' + e.haftalik + ') üstünde, o saate kadar geçişte kullanılmaz.' +
+    (bilinmeyen > 0 ? ' Yenilenme saati bilinmeyen ' + bilinmeyen + ' hesap listelenmedi.' : '');
+}
+
+// ── Sıfırlama hakkı ────────────────────────────────────────────────────────────────────────────
+function sifirlaNeden(h) {
+  return h.haftalik_dolu
+    ? 'Haftalıkta dolu (%' + h.haftalik + '): claude.ai Kullanım sayfasında tam sıfırlamayı kullan'
+    : '5 saatlikte dolu (%' + h.yuzde + '): "Limit resets" altındaki 5 saatliği sıfırlayan hak';
+}
+
+function sifirlamaCiz(v) {
+  const s = v.sifirlama || {};
+  const liste = v.hesaplar.filter(h => h.sifirlanabilir).sort((a, b) => (b.acilma || '').localeCompare(a.acilma || ''));
+  const gizli = v.hesaplar.filter(h => h.hak_yok);
+  const e = esikler(v);
+  const fableVar = v.hesaplar.some(h => h.fable != null);
+  const haftalikVar = v.hesaplar.some(h => h.haftalik != null);
+  document.querySelectorAll('#s-sifirlama th.fable-th').forEach(t => { t.hidden = !fableVar; });
+  document.querySelectorAll('#s-sifirlama th.haftalik').forEach(t => { t.hidden = !haftalikVar; });
+
+  const eylem = $('sifirlamaEylem');
+  if (s.durum === 'suruyor') {
+    eylem.replaceChildren(
+      el('span', { class: 'sira-satiri', style: 'margin:0' }, 'Şu an: ' + (s.simdiki || '…') + ' (' + (s.sira_no || 0) + '/' + (s.hesaplar || []).length + ')'),
+      el('span', { class: 'ipucu', style: 'margin:0' }, 'Açılan pencerede "Reset for free"a bas, sonra pencereyi kapat; sıradaki kendiliğinden açılır.'),
+      el('button', { class: 'kucuk tehlike', disabled: mesgul, onclick: () => islem('sifirla-iptal', {}, 'Sıra durduruluyor…') }, 'Sırayı durdur'));
+  } else {
+    eylem.replaceChildren(
+      ...[el('button', { class: 'ana', disabled: mesgul || !liste.length,
+        onclick: () => {
+          if (confirm('Listedeki ' + liste.length + ' hesabın claude.ai Kullanım sayfası sırayla açılsın mı?\n\n' +
+              'Her pencerede "Reset for free"a basıp pencereyi kapatırsın, sıradaki kendiliğinden açılır.'))
+            islem('sifirla-sira', {}, 'Sıra hazırlanıyor…');
+        } }, 'Dolu hesaplarda sırayla aç'),
+      s.durum === 'bitti' ? el('span', { class: 'ipucu', style: 'margin:0' }, 'Son sıra bitti: ' + (s.hesaplar || []).join(', ')) : null,
+      s.durum === 'iptal' ? el('span', { class: 'ipucu', style: 'margin:0' }, 'Son sıra durduruldu.') : null,
+      ].filter(Boolean));  // replaceChildren null'u "null" yazısı olarak basar
+  }
+
+  $('sifirlama').replaceChildren(...(liste.length ? liste.map((h, i) => el('tr', { class: h.aktif ? 'aktif' : '' },
+    el('td', { class: 'no' }, String(i + 1)),
+    el('td', { class: 'hesap' }, el('b', {}, h.ad), el('small', {}, h.aktif ? 'aktif hesap' : h.kurum)),
+    el('td', {}, sifirlaNeden(h)),
+    el('td', { class: 'sifir' }, h.acilma ? gunSaat(h.acilma) : '—', el('small', {}, h.acilma ? kalan(h.acilma) : '')),
+    haftalikVar ? el('td', { class: 'haftalik' }, olcu(h.haftalik, sinifla(h.haftalik, e.haftalik, 10))) : null,
+    fableVar ? el('td', { class: 'fable', title: kapsamIpucu(h) }, olcu(h.fable, sinifla(h.fable, e.haftalik, 10), 'fable')) : null,
+    el('td', { class: 'islem' },
+      el('button', { class: 'kucuk ana', disabled: mesgul, title: 'Hesabın claude.ai Kullanım sayfasını kendi penceresinde açar',
+        onclick: () => islem('claude-ai', { no: h.no }, h.ad + ' claude.ai\'da açılıyor…') }, 'Sıfırla ↗'),
+      el('button', { class: 'kucuk', disabled: mesgul, title: 'Bu hesapta sıfırlama hakkı yok ya da kullanıldı: listeden kaldır',
+        onclick: () => islem('sifirlama-hak', { no: h.no, yok: true }, h.ad + ' listeden kaldırılıyor…') }, 'Hakkı yok'))))
+    : [el('tr', {}, el('td', { colspan: 7, class: 'bos' },
+        'Şu an sıfırlamanın işe yarayacağı dolu hesap yok. (Yalnız 5 saatlikte ya da haftalıkta dolu hesaplar listelenir; haftalığı 1 gün içinde yenilenecek olanlar hariç.)'))]));
+
+  const g = $('gizliHak');
+  g.hidden = !gizli.length;
+  g.replaceChildren(...(gizli.length ? [el('span', {}, 'Hakkı yok diye gizlenen:'), ...gizli.map(h =>
+    el('button', { type: 'button', class: 'cip kucuk', disabled: mesgul, title: 'Sıfırlama listesine geri al',
+      onclick: () => islem('sifirlama-hak', { no: h.no, yok: false }, h.ad + ' listeye alınıyor…') }, h.ad + ' · göster'))] : []));
+}
+
+// ── 5 saatlik pencereyi başlatma ───────────────────────────────────────────────────────────────
+function pencereCiz(p, mesgul) {
+  if (!pencereDegisti) $('pencereSaat').value = (p.saatler || []).join(', ');
+  document.querySelector('#pencereForm button').disabled = mesgul;
+  const son = p.son || {};
+  $('pencereSaatler').replaceChildren(el('p', { class: 'pencere-satir' }, ...((p.saatler || []).length
+    ? ['Her gün ', ...p.saatler.flatMap((s, i) => [i ? ' · ' : '', el('b', {}, s)])]
+    : ['Kayıtlı saat yok: yalnız elle başlatılır.'])));
+  $('pencereEylem').replaceChildren(p.calisiyor
+    ? el('p', { class: 'pencere-satir sira' }, son.simdiki ? 'Başlatılıyor: ' + son.simdiki + ' (' + son.sira_no + '/' + son.toplam + ')' : 'Başlatılıyor…')
+    : el('button', { disabled: mesgul,
+        onclick: () => {
+          if (confirm('Penceresi sürmeyen hesapların 5 saatlik penceresi şimdi başlasın mı?\n\n' +
+              'Her birine Haiku ile tek kısa mesaj gider; pencereleri şu andan 5 saat sonra sıfırlanır. ' +
+              'Penceresi süren, haftalıkta dolu ve durdurulan hesaplar atlanır.'))
+            islem('pencere-simdi', {}, 'Başlatma açılıyor…');
+        } }, 'Şimdi başlat'));
+
+  const kutu = [];
+  if (!p.calisiyor && son.durum) {
+    const ne = son.elle ? ' (elle)' : '';
+    const baslayan = son.baslayan || [], hatali = son.hatali || [], atlanan = son.atlanan || [];
+    if (son.durum === 'bitti' || son.durum === 'yarida') {
+      kutu.push(el('p', { class: 'pencere-satir' }, el('b', {}, gunSaat(son.basladi)), ne + (son.durum === 'yarida' ? ' · yarıda kaldı' : '')));
+      kutu.push(el('p', { class: 'pencere-satir' }, baslayan.length + ' hesabın penceresi başladı'));
+      if (baslayan.length) kutu.push(el('div', { class: 'cipler' }, ...baslayan.map(a => el('span', { class: 'rozet hazir' }, a))));
+      if (atlanan.length) {
+        kutu.push(el('p', { class: 'pencere-satir' }, atlanan.length + ' hesap atlandı'));
+        kutu.push(el('div', { class: 'cipler' }, ...atlanan.map(a =>
+          el('span', { class: 'rozet durduruldu', title: a.neden }, (a.ad || a.hesap || '?') + ' · ' + a.neden))));
+      }
+      if (hatali.length) {
+        kutu.push(el('p', { class: 'pencere-satir hatali' }, 'Başlamayan: ' + hatali.map(h => h.ad + ' (' + h.mesaj + ')').join(', ')));
+      }
+    } else if (son.durum === 'gec') {
+      kutu.push(el('p', { class: 'pencere-satir' }, 'Son tetik ' + gunSaat(son.basladi) + ': ' + son.mesaj + ' (bilgisayar o saatte açık değildi).'));
+    } else if (son.durum === 'hata') {
+      kutu.push(el('p', { class: 'pencere-satir hatali' }, 'Son başlatma ' + gunSaat(son.basladi) + ': ' + (son.mesaj || 'hata')));
+    }
+  }
+  $('pencereKutu').replaceChildren(...(kutu.length ? kutu : [el('p', { class: 'ipucu', style: 'margin:0' }, 'Henüz başlatma yapılmadı.')]));
+}
+
+// ── Geçişler ───────────────────────────────────────────────────────────────────────────────────
+function gecislerCiz(v) {
+  const renk = { 'eşikte': 'okunamiyor', 'doldu': 'dolu', 'elle': 'aktif', 'hızlı tetik': 'mor', 'sınır hatası': 'dolu' };
+  $('gecisler').replaceChildren(...(v.gecisler.length ? v.gecisler.map(g => {
     const z = new Date(g.zaman);
-    const ne = g.tur === 'bekleme'
-      ? el('span', {}, 'Bütün hesaplar dolu, bekleniyor')
-      : el('span', {}, (g.kimden ? g.kimden + ' → ' : '→ ') + g.kime, ' ', el('span', { class: 'neden' }, '(' + g.neden + ')'));
-    return el('li', {}, el('time', {}, z.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit' }) + ' ' + saat(g.zaman)), ne);
-  }) : [el('li', {}, el('span', {}, ''), el('span', { class: 'neden' }, 'Henüz geçiş yok'))]));
+    const tarih = z.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit' }) + ' ' + saat(g.zaman);
+    if (g.tur === 'bekleme') {
+      return el('tr', {}, el('td', { class: 'sifir' }, tarih), el('td', { colspan: 2 }, 'Bütün hesaplar dolu, ilk sıfırlanan bekleniyor'));
+    }
+    return el('tr', {}, el('td', { class: 'sifir' }, tarih),
+      el('td', {}, el('b', {}, (g.kimden ? g.kimden + ' → ' : '→ ') + g.kime)),
+      el('td', {}, el('span', { class: 'rozet ' + (renk[g.neden] || 'durduruldu') }, g.neden || 'otomatik')));
+  }) : [el('tr', {}, el('td', { colspan: 3, class: 'bos' }, 'Henüz geçiş yok'))]));
+}
 
+function eklemeCiz(v) {
+  // Aynı anda tek giriş yapılabilir: ikincisi ilkinin giriş dosyasının üstüne yazardı.
   const ek = v.ekleme || {};
-  const ekDurum = document.getElementById('ekleDurum');
-  ekDurum.hidden = !ek.durum;
-  ekDurum.className = 'ekle-durum ' + (ek.durum || '');
-  ekDurum.replaceChildren(...[
+  const suruyor = ek.durum === 'suruyor';
+  const durum = $('ekleDurum');
+  durum.hidden = !ek.durum;
+  durum.className = 'ekle-durum ' + (ek.durum || '');
+  durum.replaceChildren(...[
     el('div', {}, ek.mesaj || ''),
-    eklemeSuruyor && ek.adim ? el('div', { class: 'adim' }, 'Şu an: ' + ek.adim) : null,
-    eklemeSuruyor ? el('div', { class: 'adim' }, (ek.sure_dk || 0) + ' dakikadır sürüyor · giriş 4 dakikada tamamlanmazsa yeniden sorulur') : null,
-    eklemeSuruyor ? el('button', { class: 'kucuk tehlike', disabled: mesgul,
+    suruyor && ek.adim ? el('div', { class: 'adim' }, 'Şu an: ' + ek.adim) : null,
+    suruyor ? el('div', { class: 'adim' }, (ek.sure_dk || 0) + ' dakikadır sürüyor · giriş 4 dakikada tamamlanmazsa yeniden sorulur') : null,
+    suruyor ? el('button', { class: 'kucuk tehlike', disabled: mesgul,
       onclick: () => islem('ekle-iptal', {}, 'Giriş iptal ediliyor…') }, 'İptal') : null,
-  ].filter(Boolean));  // replaceChildren null'u "null" yazısı olarak basar (ekleme bitince görünüyordu)
-  document.querySelector('#ekleForm button').disabled = eklemeSuruyor || mesgul;
+  ].filter(Boolean));  // replaceChildren null'u "null" yazısı olarak basar
+  document.querySelector('#ekleForm button').disabled = suruyor || mesgul;
+  sayi('ekle', suruyor ? '…' : 0, 'dikkat');
+}
 
-  document.getElementById('alt').textContent =
+function ciz() {
+  const v = veri;
+  // Yazılmış ama kaydedilmemiş eşik yoklamada ezilmesin: önceden yalnız odaktaki kutu
+  // korunuyordu; haftalığı yazıp 5 saatlik kutuya geçince haftalık eski değere dönüyor,
+  // Kaydet eski değeri kaydediyordu.
+  if (!esikDegisti) {
+    $('esik').value = v.esik;
+    $('haftalikEsik').value = v.haftalik_esik != null ? v.haftalik_esik : '';
+  }
+  const gorev = $('gorev');
+  if (v.gorev) {
+    gorev.textContent = 'Otomatik geçiş çalışıyor · eşikler: 5 saat %' + v.esik +
+      (v.haftalik_esik != null ? ' · haftalık %' + v.haftalik_esik : ' · haftalık: 5 saatlikle aynı');
+  } else {
+    gorev.textContent = 'Otomatik geçiş çalışmıyor';
+  }
+  gorev.classList.toggle('kapali', !v.gorev);
+
+  ozetCiz(v);
+  hesapTablosuCiz(v);
+  yenilenmeCiz(v);
+  sifirlamaCiz(v);
+  pencereCiz(v.pencere || {}, mesgul);
+  gecislerCiz(v);
+  eklemeCiz(v);
+  orkKotaCiz(v);
+
+  sayi('hesaplar', v.hesaplar.length);
+  sayi('yenilenme', v.hesaplar.filter(h => h.haftalik_sifirlanma).length);
+  sayi('sifirlama', v.hesaplar.filter(h => h.sifirlanabilir).length, 'dikkat');
+  sayi('pencere', (v.pencere || {}).calisiyor ? '…' : ((v.pencere || {}).saatler || []).length, (v.pencere || {}).calisiyor ? 'canli' : '');
+  const od = (v.orkestra || {}).durum;
+  sayi('orkestra', od === 'suruyor' ? '●' : 0, 'canli');
+
+  $('alt').textContent =
     'Son yenileme ' + saat(v.saat) + ' · 10 saniyede bir yenilenir · aktif hesabın yüzdesi durum satırından anlık gelir, ötekiler cswap\'ın deposundan; Anthropic\'e fazladan istek gitmez' +
     (esikDegisti ? ' · eşik değişikliği kaydedilmedi (Kaydet ya da Esc)' : '');
 }
@@ -590,7 +931,7 @@ async function yukle(sessiz) {
     // geri gelince hata yazısı kendiliğinden kalksın.
     if (baglantiHatasi) {
       baglantiHatasi = false;
-      document.getElementById('bildirim').hidden = true;
+      $('bildirim').hidden = true;
     }
     // arayuz.html değiştiyse yeni sayfayı al (yarım iş ya da kaydedilmemiş eşik varken bekle).
     if (sayfaSurumu == null) sayfaSurumu = veri.sayfa;
@@ -627,18 +968,301 @@ async function islem(ad, govde, beklerken) {
   return tamam;
 }
 
+// ── Orkestra ───────────────────────────────────────────────────────────────────────────────────
+// orkestra/runner.py'yi panel ayrı süreç olarak çalıştırır; sayfa durumu /api/orkestra'dan 1,5 sn'de bir
+// (çalışırken) okur. Form bir kez kurulur ve yoklamada yeniden çizilmez: yazılan görev ve seçimler kaybolmaz.
+const AJAN_DURUM = { IDLE: 'Boşta', THINKING: 'Düşünüyor', RUNNING: 'Çalışıyor', DELEGATING: 'Dağıtıyor', FINISHED: 'Bitti', ERROR: 'Hata' };
+const AJAN_SINIF = { IDLE: 'durduruldu', THINKING: 'okunamiyor', RUNNING: 'okunamiyor', DELEGATING: 'okunamiyor', FINISHED: 'hazir', ERROR: 'dolu' };
+const KOSU_DURUM = { bosta: ['Hazır', 'durduruldu'], suruyor: ['Çalışıyor', 'okunamiyor'], bitti: ['Bitti', 'hazir'],
+  hata: ['Hata', 'dolu'], iptal: ['Durduruldu', 'durduruldu'], yarida: ['Yarıda kaldı', 'dolu'] };
+const ork = { katalog: null, son: null, kosuId: null, akimAjan: 'claude', akimKonum: {}, akimMetin: {}, akimCizilen: '',
+  planImza: '', planAcik: new Set(), mesajDom: new Map(), zamanlayici: null, yukleniyor: false, katalogYukleniyor: false };
+
+function orkAyarOku() {
+  try { return JSON.parse(localStorage.getItem('orkAyar') || '{}') || {}; } catch { return {}; }
+}
+function orkAyarYaz(ek) {
+  try { localStorage.setItem('orkAyar', JSON.stringify(Object.assign(orkAyarOku(), ek))); } catch { /* hatırlanmasa da çalışır */ }
+}
+const ajanAdi = k => k === 'user' ? 'Kullanıcı' : k === 'all' ? 'Herkes'
+  : ((ork.katalog && ork.katalog.saglayicilar.find(p => p.anahtar === k)) || { ad: k }).ad;
+
+// Ayar paneli: sağlayıcı başına Şef/İşçi seçimi, model ve akıl yürütme seviyesi.
+function orkFormKur() {
+  const kat = ork.katalog, ayar = orkAyarOku();
+  const anahtarlar = kat.saglayicilar.map(p => p.anahtar);
+  const sef = anahtarlar.includes(ayar.sef) ? ayar.sef : kat.varsayilan_sef;
+  const isciler = Array.isArray(ayar.isciler) ? ayar.isciler.filter(k => anahtarlar.includes(k)) : kat.varsayilan_isciler;
+  const kartlar = kat.saglayicilar.map(p => {
+    const model = (ayar.modeller || {})[p.anahtar];
+    const effort = (ayar.eforlar || {})[p.anahtar];
+    return el('div', { class: 'ajan-kart' + (p.kurulu ? '' : ' yok'), 'data-k': p.anahtar },
+      el('div', { class: 'ajan-ust' },
+        el('b', {}, p.ikon + ' ' + p.ad),
+        p.kurulu ? null : el('span', { class: 'rozet okunamiyor', title: 'Bu CLI PATH\'te bulunamadı' }, 'kurulu değil'),
+        el('label', { class: 'rol' }, el('input', { type: 'radio', name: 'orkSef', value: p.anahtar, checked: p.anahtar === sef }), 'Şef'),
+        el('label', { class: 'rol' }, el('input', { type: 'checkbox', class: 'orkIsci', 'data-k': p.anahtar, checked: isciler.includes(p.anahtar) }), 'İşçi')),
+      el('div', { class: 'ajan-alt' },
+        el('label', {}, 'Model', el('select', { class: 'orkModel', 'data-k': p.anahtar },
+          ...p.modeller.map(m => el('option', { value: m.id, selected: m.id === (model || p.varsayilan_model), title: m.ad }, m.id + ' · ' + m.kademe)))),
+        el('label', {}, 'Akıl yürütme', el('select', { class: 'orkEffort', 'data-k': p.anahtar },
+          ...p.efforlar.map(f => el('option', { value: f, selected: f === (effort || p.varsayilan_effort) }, f))))));
+  });
+  $('orkAjanlar').replaceChildren(...kartlar);
+  orkRolleriDenkle();
+  orkAkimSekmeleriCiz();
+}
+
+// Şef aynı anda işçi olamaz.
+function orkRolleriDenkle() {
+  const sef = (document.querySelector('input[name=orkSef]:checked') || {}).value;
+  document.querySelectorAll('.orkIsci').forEach(c => {
+    c.disabled = c.dataset.k === sef;
+    if (c.disabled) c.checked = false;
+  });
+}
+
+function orkFormOku() {
+  const sef = (document.querySelector('input[name=orkSef]:checked') || {}).value;
+  const modeller = {}, eforlar = {};
+  document.querySelectorAll('.orkModel').forEach(s => { modeller[s.dataset.k] = s.value; });
+  document.querySelectorAll('.orkEffort').forEach(s => { eforlar[s.dataset.k] = s.value; });
+  const isciler = [...document.querySelectorAll('.orkIsci')].filter(c => c.checked && c.dataset.k !== sef).map(c => c.dataset.k);
+  return { sef, isciler, modeller, eforlar, klasor: $('orkKlasor').value.trim() };
+}
+
+$('orkAjanlar').addEventListener('change', () => {
+  orkRolleriDenkle();
+  if (ork.katalog) orkAyarYaz(orkFormOku());
+});
+$('orkKlasor').addEventListener('input', () => orkAyarYaz({ klasor: $('orkKlasor').value.trim() }));
+$('orkHedef').addEventListener('input', () => orkAyarYaz({ hedef: $('orkHedef').value }));
+$('orkHedef').addEventListener('keydown', ev => {
+  if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); orkBaslat(); }
+});
+$('orkBaslat').addEventListener('click', orkBaslat);
+$('orkDurdur').addEventListener('click', async () => {
+  if (await islem('orkestra-iptal', {}, 'Orkestra durduruluyor…')) orkYukle();
+});
+$('orkTara').addEventListener('click', async () => {
+  if (await islem('orkestra-tara', {}, 'CLI\'lar taranıyor (yarım dakika sürebilir)…')) await orkKatalogYukle();
+});
+$('orkKopyala').addEventListener('click', async () => {
+  const metin = (ork.son || {}).sonuc || '';
+  try { await navigator.clipboard.writeText(metin); bildir('Sonuç panoya kopyalandı.', true); }
+  catch { bildir('Kopyalanamadı: metni seçip Ctrl+C ile kopyala.', false); }
+});
+
+async function orkBaslat() {
+  const f = orkFormOku();
+  const hedef = $('orkHedef').value.trim();
+  if (!hedef) { bildir('Şefe verilecek görevi yaz.', false); $('orkHedef').focus(); return; }
+  if (!ork.katalog || !f.sef) { bildir('Ajan listesi henüz yüklenmedi.', false); return; }
+  const ad = k => ajanAdi(k) + ' (' + f.modeller[k] + ')';
+  if (!confirm('Şef: ' + ad(f.sef) + '\nİşçiler: ' + (f.isciler.length ? f.isciler.map(ad).join(', ') : 'yok, şef kendisi yürütür') +
+      '\nKlasör: ' + (f.klasor || 'boş çalışma klasörü') +
+      '\n\nİşçi CLI\'lar onay istemeden çalışır ve bu klasörde dosya değiştirebilir. Başlasın mı?')) return;
+  const tamam = await islem('orkestra-baslat', Object.assign({ hedef, model: f.modeller[f.sef], effort: f.eforlar[f.sef] }, f),
+    'Orkestra başlatılıyor…');
+  if (tamam) { ork.kosuId = null; orkYukle(); }
+}
+
+async function orkKatalogYukle() {
+  if (ork.katalogYukleniyor) return;
+  ork.katalogYukleniyor = true;
+  try {
+    ork.katalog = await api('/api/orkestra/katalog');
+    orkFormKur();
+  } catch (e) {
+    $('orkAjanlar').replaceChildren(el('p', { class: 'ipucu kirmizi', style: 'margin:0' }, 'Ajan listesi okunamadı: ' + e.message));
+  } finally {
+    ork.katalogYukleniyor = false;
+  }
+}
+
+function orkAc() {
+  const ayar = orkAyarOku();
+  if (!$('orkHedef').value && ayar.hedef) $('orkHedef').value = ayar.hedef;
+  if (!$('orkKlasor').value && ayar.klasor) $('orkKlasor').value = ayar.klasor;
+  if (!ork.katalog) orkKatalogYukle();
+  orkYukle();
+}
+
+async function orkYukle() {
+  if (ork.yukleniyor) return;
+  ork.yukleniyor = true;
+  try {
+    const a = ork.akimAjan;
+    const s = await api('/api/orkestra?ajan=' + encodeURIComponent(a) + '&konum=' + (ork.akimKonum[a] || 0));
+    orkUygula(s);
+  } catch (e) {
+    $('orkDurum').replaceChildren(el('span', { class: 'ipucu kirmizi', style: 'margin:0' }, 'Durum okunamadı: ' + e.message));
+  } finally {
+    ork.yukleniyor = false;
+    orkPlanla();
+  }
+}
+
+function orkPlanla() {
+  clearTimeout(ork.zamanlayici);
+  if (sekme !== 'orkestra' || document.visibilityState !== 'visible') return;
+  ork.zamanlayici = setTimeout(orkYukle, ork.son && ork.son.durum === 'suruyor' ? 1500 : 6000);
+}
+
+function orkUygula(s) {
+  const kosu = (s.calisma || {}).basladi || null;
+  if (kosu !== ork.kosuId) {  // yeni çalışma: eski çıktı ve mesajlar bırakılır
+    ork.kosuId = kosu;
+    ork.akimKonum = {}; ork.akimMetin = {}; ork.akimCizilen = '';
+    ork.planImza = ''; ork.planAcik.clear(); ork.mesajDom.clear();
+    $('orkMesajlar').replaceChildren();
+  }
+  if (s.akim) {
+    const a = s.akim.ajan;
+    ork.akimMetin[a] = ((ork.akimMetin[a] || '') + s.akim.metin).slice(-400000);
+    ork.akimKonum[a] = s.akim.konum;
+  }
+  ork.son = s;
+  orkCiz();
+}
+
+function orkCiz() {
+  const s = ork.son;
+  if (!s) return;
+  const c = s.calisma || {};
+  const suruyor = s.durum === 'suruyor';
+  const [durumAdi, durumSinif] = KOSU_DURUM[s.durum] || [s.durum, 'durduruldu'];
+  $('orkBaslat').hidden = suruyor;
+  $('orkDurdur').hidden = !suruyor;
+  $('orkBaslat').disabled = mesgul;
+  $('orkHedef').readOnly = suruyor;
+  const toplam = (s.jeton.girdi || 0) + (s.jeton.cikti || 0);
+  $('orkDurum').replaceChildren(...[
+    el('span', { class: 'rozet ' + durumSinif }, durumAdi),
+    c.basladi ? el('span', {}, 'Süre ', el('b', {}, sureYazi(c.sure_sn))) : null,
+    c.basladi ? el('span', {}, 'Tahmini jeton ', el('b', {}, toplam.toLocaleString('tr-TR')),
+      ' (girdi ' + (s.jeton.girdi || 0).toLocaleString('tr-TR') + ' · çıktı ' + (s.jeton.cikti || 0).toLocaleString('tr-TR') + ')') : null,
+    c.sef ? el('span', {}, 'Şef ', el('b', {}, ajanAdi(c.sef) + (c.model ? ' · ' + c.model : '')), c.sahte ? ' (deneme kipi)' : '') : null,
+    ...Object.entries(s.ajanlar || {}).filter(([, d]) => d !== 'IDLE').map(([k, d]) =>
+      el('span', { class: 'rozet ' + (AJAN_SINIF[d] || 'durduruldu') }, ajanAdi(k) + ': ' + (AJAN_DURUM[d] || d))),
+  ].filter(Boolean));
+  $('orkHataKutu').hidden = !s.hata;
+  $('orkHata').textContent = s.hata || '';
+
+  // Plan: yalnız değişince yeniden çizilir (açık "talimat" ayrıntıları kapanmasın).
+  const imza = JSON.stringify(s.plan);
+  if (imza !== ork.planImza) {
+    ork.planImza = imza;
+    $('orkPlan').replaceChildren(...(s.plan.length ? s.plan.map(g => {
+      const sinif = { RUNNING: 'calisiyor', FINISHED: 'bitti', ERROR: 'hata' }[g.durum] || '';
+      return el('div', { class: 'plan-kart ' + sinif },
+        el('div', { class: 'plan-ust' },
+          el('b', {}, (g.id ? g.id + ' · ' : '') + g.baslik),
+          el('span', { class: 'rozet mor' }, 'İşçi: ' + ajanAdi(g.isci)),
+          el('span', { class: 'rozet ' + (AJAN_SINIF[g.durum] || 'durduruldu') }, g.durum === 'IDLE' ? 'Bekliyor' : (AJAN_DURUM[g.durum] || g.durum))),
+        (g.jeton || g.sure) ? el('div', { class: 'plan-alt' }, [g.jeton ? '≈' + g.jeton.toLocaleString('tr-TR') + ' jeton' : '', g.sure ? g.sure.toFixed(1) + ' sn' : ''].filter(Boolean).join(' · ')) : null,
+        g.talimat ? el('details', { class: 'nasil', style: 'margin:6px 0 0', open: ork.planAcik.has(g.id) || null, ontoggle: ev => {
+          if (ev.target.open) ork.planAcik.add(g.id); else ork.planAcik.delete(g.id);
+        } }, el('summary', {}, 'Talimat' + ((g.dosyalar || []).filter(Boolean).length ? ' · ' + g.dosyalar.filter(Boolean).join(', ') : '')), el('p', {}, g.talimat)) : null);
+    }) : [el('p', { class: 'ipucu', style: 'margin:0' }, suruyor ? 'Şef planı hazırlıyor…' : 'Şefe görev verince alt görevler burada görünür.')]));
+  }
+
+  // Yazışma: yeni mesajlar eklenir, mevcutlar yerinde kalır (açık ayrıntı ve kaydırma bozulmasın).
+  const liste = $('orkMesajlar');
+  for (const m of s.mesajlar) {
+    if (ork.mesajDom.has(m.id)) continue;
+    const jeton = (m.girdi || 0) + (m.cikti || 0);
+    const detay = el('pre', { class: 'cikti', hidden: true });
+    const dugme = el('button', { class: 'kucuk', type: 'button', onclick: async () => {
+      if (!detay.hidden) { detay.hidden = true; dugme.textContent = 'Ayrıntı'; return; }
+      dugme.disabled = true;
+      try {
+        if (!detay.dataset.yuklendi) {
+          detay.textContent = (await api('/api/orkestra/mesaj?id=' + encodeURIComponent(m.id))).icerik || '(boş)';
+          detay.dataset.yuklendi = '1';
+        }
+        detay.hidden = false; dugme.textContent = 'Gizle';
+      } catch (e) { bildir(e.message, false); } finally { dugme.disabled = false; }
+    } }, 'Ayrıntı');
+    const li = el('li', {},
+      el('div', { class: 'yaz-ust' },
+        el('time', {}, m.zaman || ''),
+        el('span', { class: 'kim' }, ajanAdi(m.gonderen) + ' → ' + ajanAdi(m.alici)),
+        el('span', {}, m.ozet || ''),
+        jeton ? el('span', { class: 'neden' }, '≈' + jeton.toLocaleString('tr-TR') + ' jeton') : null,
+        m.sure ? el('span', { class: 'neden' }, Number(m.sure).toFixed(1) + ' sn') : null,
+        dugme),
+      detay);
+    ork.mesajDom.set(m.id, li);
+    const altta = liste.scrollTop + liste.clientHeight >= liste.scrollHeight - 24;
+    liste.append(li);
+    if (altta) liste.scrollTop = liste.scrollHeight;
+  }
+  if (!s.mesajlar.length && !liste.children.length) liste.replaceChildren(el('li', { class: 'neden' }, 'Henüz mesaj yok.'));
+  else if (s.mesajlar.length && liste.firstChild && liste.firstChild.classList.contains('neden')) liste.firstChild.remove();
+
+  const sonuc = $('orkSonuc');
+  const sonucMetni = s.sonuc || (suruyor ? 'Şef sonuçları birleştirince burada görünür…' : 'Sonuç çalışma bitince burada.');
+  if (sonuc.textContent !== sonucMetni) sonuc.textContent = sonucMetni;
+  $('orkKopyala').hidden = !s.sonuc;
+  orkAkimSekmeleriCiz();
+  orkAkimCiz();
+}
+
+function orkAkimSekmeleriCiz() {
+  if (!ork.katalog) return;
+  const var_ = (ork.son || {}).akim_ajanlari || {};
+  $('orkAkimSekmeleri').replaceChildren(...ork.katalog.saglayicilar.map(p =>
+    el('button', { type: 'button', class: 'cip', 'aria-pressed': p.anahtar === ork.akimAjan ? 'true' : 'false',
+      onclick: () => { ork.akimAjan = p.anahtar; ork.akimCizilen = ''; orkAkimSekmeleriCiz(); orkAkimCiz(); orkYukle(); } },
+      p.ikon + ' ' + p.ad + (var_[p.anahtar] ? ' ●' : ''))));
+}
+
+function orkAkimCiz() {
+  const pre = $('orkAkim');
+  const metin = ork.akimMetin[ork.akimAjan] || '';
+  const imza = ork.akimAjan + ':' + metin.length;
+  if (imza === ork.akimCizilen) return;
+  ork.akimCizilen = imza;
+  const altta = pre.scrollTop + pre.clientHeight >= pre.scrollHeight - 24;
+  pre.textContent = metin || 'Bu ajanın henüz çıktısı yok.';
+  if (altta) pre.scrollTop = pre.scrollHeight;
+}
+
+// Orkestra sekmesindeki kota özeti: Claude her çağrıda o an aktif hesapla çalışır; eşikte hesap kendiliğinden değişir.
+function orkKotaCiz(v) {
+  const a = v.hesaplar.find(h => h.aktif);
+  const hazir = v.hesaplar.filter(h => h.durum === 'hazir').length;
+  if (!a) { $('orkKota').replaceChildren(el('p', { class: 'ipucu', style: 'margin:0' }, 'Aktif hesap yok.')); return; }
+  const e = esikler(v);
+  const satir = (ad, y, sinir, pay, ekstra) => el('div', { class: 'kota-satir' }, el('span', {}, ad),
+    el('div', { class: 'cubuk ' + (ekstra || '') + ' ' + sinifla(y, sinir, pay) }, el('span', { style: '--y:' + Math.min(y || 0, 100) + '%' })),
+    el('span', {}, y == null ? '—' : '%' + y));
+  const yakin = a.yuzde != null && a.yuzde >= e.saatlik - 10;
+  $('orkKota').replaceChildren(...[
+    el('div', {}, 'Aktif hesap: ', el('b', {}, a.ad)),
+    satir('5 saatlik', a.yuzde, e.saatlik, 15),
+    satir('Haftalık', a.haftalik, e.haftalik, 10),
+    a.fable != null ? satir('Fable', a.fable, e.haftalik, 10, 'fable') : null,
+    el('p', { class: 'ipucu' }, 'Claude şef ya da işçi her çağrıda o an aktif hesabı kullanır; eşiğe gelince otomatik geçiş sürer. ' +
+      hazir + ' hazır hesap var.' + (yakin ? ' Aktif hesap eşiğe yakın: uzun çalışmada hesap değişebilir.' : '') +
+      ' "fable" modeli Fable haftalık kotasından yer.'),
+  ].filter(Boolean));  // replaceChildren null'u "null" yazısı olarak basar
+}
+
+// ── Olaylar ────────────────────────────────────────────────────────────────────────────────────
 for (const id of ['esik', 'haftalikEsik']) {
-  const kutu = document.getElementById(id);
+  const kutu = $(id);
   kutu.addEventListener('input', () => { esikDegisti = true; });
   // Esc: yazılanı bırak, kayıtlı eşiklere dön.
   kutu.addEventListener('keydown', ev => {
     if (ev.key === 'Escape' && esikDegisti) { esikDegisti = false; if (veri) ciz(); kutu.blur(); }
   });
 }
-document.getElementById('esikForm').addEventListener('submit', async ev => {
+$('esikForm').addEventListener('submit', async ev => {
   ev.preventDefault();
-  const kutu = document.getElementById('esik');
-  const hKutu = document.getElementById('haftalikEsik');
+  const kutu = $('esik');
+  const hKutu = $('haftalikEsik');
   const hVal = hKutu.value.trim();
   const govde = {
     yuzde: Number(kutu.value),
@@ -652,12 +1276,12 @@ document.getElementById('esikForm').addEventListener('submit', async ev => {
     hKutu.blur();
   }
 });
-const pencereSaat = document.getElementById('pencereSaat');
+const pencereSaat = $('pencereSaat');
 pencereSaat.addEventListener('input', () => { pencereDegisti = true; });
 pencereSaat.addEventListener('keydown', ev => {
   if (ev.key === 'Escape' && pencereDegisti) { pencereDegisti = false; if (veri) ciz(); pencereSaat.blur(); }
 });
-document.getElementById('pencereForm').addEventListener('submit', async ev => {
+$('pencereForm').addEventListener('submit', async ev => {
   ev.preventDefault();
   if (await islem('pencere-kaydet', { saatler: pencereSaat.value }, 'Saatler kaydediliyor…')) {
     pencereDegisti = false;
@@ -665,10 +1289,9 @@ document.getElementById('pencereForm').addEventListener('submit', async ev => {
     pencereSaat.blur();
   }
 });
-document.getElementById('ekleGit').addEventListener('click', () => {
-  const kutu = document.getElementById('eposta');
-  kutu.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  kutu.focus();
+$('ekleGit').addEventListener('click', () => {
+  sekmeSec('ekle', false);
+  $('eposta').focus();
 });
 document.querySelectorAll('th[data-alan] button.sirala').forEach(dugme => {
   dugme.addEventListener('click', () => {
@@ -678,17 +1301,18 @@ document.querySelectorAll('th[data-alan] button.sirala').forEach(dugme => {
     if (veri) ciz();
   });
 });
-document.getElementById('enIyi').addEventListener('click', () => islem('en-iyi', {}, 'En boş hesap aranıyor…'));
-document.getElementById('yenile').addEventListener('click', () => yukle(false));
-document.getElementById('ekleForm').addEventListener('submit', ev => {
+$('enIyi').addEventListener('click', () => islem('en-iyi', {}, 'En boş hesap aranıyor…'));
+$('yenile').addEventListener('click', () => yukle(false));
+$('ekleForm').addEventListener('submit', ev => {
   ev.preventDefault();
-  const kutu = document.getElementById('eposta');
+  const kutu = $('eposta');
   islem('ekle', { eposta: kutu.value.trim() }, 'Hesap ekleme başlıyor…').then(() => { kutu.value = ''; });
 });
 
 // Giriş sürerken adımı 5 saniyede bir göster; yoksa 10 saniyede bir: aktif hesabın yüzdesi durum satırından anlık geliyor.
 // Simge durumundaki pencerede Chrome bunu dakikada bire indirir; sunucu 12 saat bekler.
 let sonYukleme = 0;
+sekmeSec(sekme, false);
 yukle(false).then(() => { sonYukleme = Date.now(); });
 setInterval(() => {
   const suruyor = veri && ((veri.ekleme && veri.ekleme.durum === 'suruyor') ||
@@ -703,6 +1327,7 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && !mesgul) {
     sonYukleme = Date.now();
     yukle(true);
+    if (sekme === 'orkestra') orkYukle();
   }
 });
 // Pencere kapanıyor: sunucu 12 saat beklemesin, başka pencere yoksa 90 sn sonra kapansın.

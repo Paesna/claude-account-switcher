@@ -167,9 +167,33 @@ def ad(eposta):
     return eposta.split('@')[0]
 
 
+def kapsamlar(u, simdi):
+    """Modele özel haftalık sınırlar (cswap'ın 'scoped' listesi: Fable vb.). Sıfırlanma saati geçmişse
+    depodaki yüzde eskidir: 0 sayılır."""
+    cikti = []
+    for s in u.get('scoped') or []:
+        yuzde = round(s['pct']) if s.get('pct') is not None else None
+        sifir = None
+        if s.get('resetsAt'):
+            sifir = datetime.fromisoformat(s['resetsAt'])
+            if sifir <= simdi:
+                yuzde, sifir = 0, None
+        cikti.append({'ad': str(s.get('name') or '?'), 'yuzde': yuzde,
+                      'sifirlanma': sifir.isoformat() if sifir else None})
+    return cikti
+
+
+def hak_yok_oku():
+    """Sıfırlama hakkı olmadığı elle işaretlenen hesapların e-postaları (küçük harf). Hakkın olup olmadığını
+    yalnız claude.ai Kullanım sayfası bilir; cswap vermiyor. Kişi görünce işaretler, sekmeden kalkar."""
+    ham = json_dosya(SIFIRLAMA_HAK_YOK).get('epostalar')
+    return {str(e).lower() for e in ham} if isinstance(ham, list) else set()
+
+
 def hesaplar(esik, haftalik_esik=None):
     veri = cswap_liste()
     simdi = datetime.now(timezone.utc)
+    hak_yok = hak_yok_oku()
     satirlar = []
     for a in veri['accounts']:
         u = a.get('usage') or {}
@@ -205,18 +229,27 @@ def hesaplar(esik, haftalik_esik=None):
             durum = 'dolu'
         else:
             durum = 'hazir'
-        satirlar.append({
+        kapsam = kapsamlar(u, simdi)
+        fable = next((k for k in kapsam if k['ad'].lower() == 'fable'), None)
+        satir = {
             'no': a['number'], 'eposta': a['email'], 'ad': ad(a['email']),
             'kurum': a.get('organizationName') or '', 'durum': durum,
             'durduruldu': bool(a.get('disabled')), 'aktif': bool(a.get('active')),
             'yuzde': yuzde, 'sifirlanma': sifir.isoformat() if sifir else None,
             'haftalik': h_yuzde,
             'haftalik_sifirlanma': h_sifir.isoformat() if h_sifir else None,
+            'fable': fable['yuzde'] if fable else None,
+            'fable_sifirlanma': fable['sifirlanma'] if fable else None,
+            'kapsam': kapsam,
             'acilma': acilma.isoformat() if acilma else None,
             'saatlik_dolu': saatlik_dolu,
             'haftalik_dolu': haftalik_dolu,
             'hata': a.get('usageError') or '',
-        })
+        }
+        satir['hak_yok'] = a['email'].lower() in hak_yok
+        # Sıfırlama sekmesi yalnız hakkı olan ve sıfırlamanın işe yaradığı hesapları gösterir.
+        satir['sifirlanabilir'] = not satir['hak_yok'] and sifirlanabilir(satir, simdi.timestamp())
+        satirlar.append(satir)
     sira = {'aktif': 0, 'hazir': 1, 'dolu': 2, 'okunamiyor': 3, 'durduruldu': 4}
     satirlar.sort(key=lambda s: (sira[s['durum']],
                                  s['yuzde'] if s['durum'] == 'hazir' else 0,
@@ -318,7 +351,7 @@ def gecisler(adlar):
             no = o.pop('kimden_no')
             o['kimden'] = adlar.get(no, '#%d' % no)
         sonuc.append(o)
-        if len(sonuc) == 15:
+        if len(sonuc) == 40:
             break
     return sonuc
 
@@ -350,7 +383,7 @@ def durum():
         sifirlama = {k: v for k, v in sira.items() if k != 'iptal'}
     return {'esik': esik, 'haftalik_esik': haftalik_esik, 'gorev': gorev_calisiyor(), 'hesaplar': liste,
             'gecisler': gecisler({h['no']: h['ad'] for h in liste}), 'ekleme': ek, 'sifirlama': sifirlama,
-            'pencere': pencere_durumu(),
+            'pencere': pencere_durumu(), 'orkestra': orkestra_ozet(),
             'saat': datetime.now().astimezone().isoformat(), 'sayfa': sayfa_surumu()}
 
 
@@ -630,7 +663,7 @@ def claude_ai(govde):
 
 
 def sifirlanabilir(h, simdi_ts):
-    """Sıfırlama hakkı bu hesapta işe yarar mı (arayuz.html'deki sifirlanabilir() ile aynı kural).
+    """Sıfırlama hakkı bu hesapta işe yarar mı. Kural yalnız burada; sayfa satırdaki 'sifirlanabilir'i kullanır.
     Yalnız 5 saatlikte dolu: evet; 5 saatliği sıfırlayan hak hesabı hemen açar. Haftalıkta dolu:
     yalnız haftalığı 24 saatten uzaktaysa; 5 saatlik sıfırlama haftalık doluyken hesabı açmaz,
     birkaç saat sonra zaten yenilenecek hesaba da tam sıfırlama harcanmasın."""
@@ -643,10 +676,10 @@ def sifirlanabilir(h, simdi_ts):
 
 
 def sira_adaylari():
-    """Sıfırlamanın işe yaradığı dolu hesaplar, en geç açılacak olan önce: sıfırlama en çok orada kazandırır."""
+    """Sıfırlamanın işe yaradığı (ve hakkı olmadığı işaretlenmemiş) dolu hesaplar, en geç açılacak olan önce:
+    sıfırlama en çok orada kazandırır."""
     esik, haftalik_esik = esik_oku()
-    simdi_ts = datetime.now(timezone.utc).timestamp()
-    adaylar = [h for h in hesaplar(esik, haftalik_esik) if sifirlanabilir(h, simdi_ts)]
+    adaylar = [h for h in hesaplar(esik, haftalik_esik) if h['sifirlanabilir']]
     adaylar.sort(key=lambda h: h['acilma'] or '', reverse=True)
     return adaylar
 
@@ -699,6 +732,7 @@ PENCERE_BETIK = os.path.join(KLASOR, 'pencere-baslat.pyw')
 PENCERE_VERI = os.path.join(os.environ.get('LOCALAPPDATA') or KLASOR, 'claude-account-switcher')
 PENCERE_AYAR = os.path.join(PENCERE_VERI, 'pencere-baslat.json')
 PENCERE_DURUM = os.path.join(PENCERE_VERI, 'pencere-baslat.durum.json')
+SIFIRLAMA_HAK_YOK = os.path.join(PENCERE_VERI, 'sifirlama-hak-yok.json')
 PENCERE_MUTEX = 'Local\\claude-account-switcher-pencere'
 DETACHED_PROCESS = 0x00000008
 CREATE_NEW_PROCESS_GROUP = 0x00000200
@@ -777,10 +811,297 @@ def pencere_simdi(_):
     return 'Başlatılıyor: boştaki her hesaba sırayla tek kısa mesaj gidiyor (hesap başına birkaç saniye).'
 
 
+def json_yaz(yol, veri):
+    os.makedirs(os.path.dirname(yol), exist_ok=True)
+    gecici = yol + '.yeni'
+    with open(gecici, 'w', encoding='utf-8') as f:
+        json.dump(veri, f, ensure_ascii=False)
+    os.replace(gecici, yol)  # yarım yazılmış dosya okunmasın
+
+
+def sifirlama_hak(govde):
+    """Hesapta sıfırlama hakkı yok (ya da kullanıldı): Sıfırlama sekmesinden kalkar. yok=false geri alır."""
+    no = no_al(govde)
+    yok = bool(govde.get('yok'))
+    hesap = next((a for a in cswap_liste()['accounts'] if a['number'] == no), None)
+    if not hesap:
+        raise ValueError('Bu numarada hesap yok.')
+    liste = hak_yok_oku()
+    (liste.add if yok else liste.discard)(hesap['email'].lower())
+    json_yaz(SIFIRLAMA_HAK_YOK, {'epostalar': sorted(liste)})
+    if yok:
+        return '%s sıfırlama sekmesinden kaldırıldı (hakkı yok). Geri almak için sekmenin altındaki listeden "Göster".' % ad(hesap['email'])
+    return '%s sıfırlama sekmesine geri alındı.' % ad(hesap['email'])
+
+
+# Orkestra: orkestra/ klasöründeki çoklu yapay zekâ ajan yönetimi (şef plan yapar, işçi CLI'lara dağıtır,
+# sentezler). İşi orkestra/runner.py yapar; panel onu ayrı süreç olarak başlatır ve stdout'undaki
+# JSON satırlarını (basladi/ajan/plan/mesaj/akim/bitti/hata) okuyup sayfaya durum olarak verir.
+# Ayrı süreç: CLI'lar ya da takılan bir işçi sunucuyu etkilemesin, iptalde süreç ağacı öldürülebilsin.
+ORKESTRA_KLASOR = os.path.join(KLASOR, 'orkestra')
+ORKESTRA_VERI = os.path.join(PENCERE_VERI, 'orkestra')
+ORKESTRA_SON = os.path.join(ORKESTRA_VERI, 'son-calisma.json')
+ORKESTRA_HATA = os.path.join(ORKESTRA_VERI, 'runner.err')
+ORKESTRA_BOS_KLASOR = os.path.join(ORKESTRA_VERI, 'calisma')  # klasör seçilmezse: boş, projeye dokunmaz
+ORKESTRA_AKIM_SINIRI = 200_000   # ajan başına bellekte tutulan canlı çıktı (karakter)
+ORKESTRA_KAYIT_SINIRI = 30_000   # kayda yazılan mesaj içeriği ve canlı çıktı sonu (karakter)
+ORKESTRA_MESAJ_SINIRI = 400      # bir çalışmada tutulan en çok mesaj (kaçak bir döngü belleği şişirmesin)
+ORKESTRA_AD = re.compile(r'^[A-Za-z0-9._:/\[\]-]{1,80}$')  # model/effort/anahtar: .cmd kabuğundan geçer
+# Panel bir Claude Code oturumundan açıldıysa bunlar alt claude'ları o oturuma bağlar ya da girişi ezer.
+ORKESTRA_TEMIZLE = ('CLAUDECODE', 'CLAUDE_CODE_ENTRYPOINT', 'CLAUDE_CONFIG_DIR', 'CLAUDE_CODE_SSE_PORT',
+                    'ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN', 'CLAUDE_CODE_OAUTH_TOKEN')
+ork_kilit = threading.Lock()
+ork_surec = None
+_katalog = {'veri': None}
+
+
+def ork_bos():
+    return {'durum': 'bosta', 'calisma': {}, 'ajanlar': {}, 'plan': [], 'mesajlar': [],
+            'jeton': {'girdi': 0, 'cikti': 0, 'onbellek': 0}, 'sonuc': '', 'hata': '', 'akim': {}, 'iptal': False}
+
+
+ork = ork_bos()
+
+
+def ork_ortam():
+    return {k: v for k, v in ORTAM.items() if k not in ORKESTRA_TEMIZLE}
+
+
+def ork_komut(*arg):
+    return [yorumlayici(False), '-X', 'utf8', '-u', os.path.join(ORKESTRA_KLASOR, 'runner.py'), *arg]
+
+
+def ork_yukle():
+    """Önceki çalışmanın sonucu pencere kapanıp açılınca ya da sunucu yeniden başlayınca kaybolmasın."""
+    global ork
+    kayit = json_dosya(ORKESTRA_SON)
+    if not kayit.get('calisma'):
+        return
+    yeni = ork_bos()
+    yeni.update({k: kayit[k] for k in yeni if k in kayit and k != 'iptal'})
+    if yeni['durum'] == 'suruyor':
+        yeni['durum'] = 'yarida'  # sunucu çalışma sürerken kapanmış (bilgisayar kapandı vb.)
+    ork = yeni
+
+
+def ork_kaydet():
+    with ork_kilit:
+        kayit = {k: v for k, v in ork.items() if k not in ('akim', 'iptal')}
+        kayit['mesajlar'] = [dict(m, icerik=(m.get('icerik') or '')[:ORKESTRA_KAYIT_SINIRI]) for m in ork['mesajlar']]
+        kayit['akim'] = {a: {'baslangic': 0, 'metin': b['metin'][-ORKESTRA_KAYIT_SINIRI:]}
+                         for a, b in ork['akim'].items()}
+    try:
+        json_yaz(ORKESTRA_SON, kayit)
+    except OSError:
+        log('orkestra kaydi yazilamadi: ' + traceback.format_exc())
+
+
+def ork_olay(o):
+    """runner.py'nin tek bir JSON satırı."""
+    t = o.get('t')
+    with ork_kilit:
+        if t == 'ajan':
+            ork['ajanlar'][str(o.get('ajan'))] = str(o.get('durum'))
+        elif t == 'plan':
+            ork['plan'] = list(o.get('gorevler') or [])
+        elif t == 'mesaj':
+            if len(ork['mesajlar']) < ORKESTRA_MESAJ_SINIRI:
+                ork['mesajlar'].append({k: o.get(k) for k in ('id', 'zaman', 'gonderen', 'alici', 'tur', 'ozet',
+                                                              'icerik', 'girdi', 'cikti', 'sure', 'gorev')})
+            ork['jeton']['girdi'] += int(o.get('girdi') or 0)
+            ork['jeton']['cikti'] += int(o.get('cikti') or 0)
+        elif t == 'akim':
+            b = ork['akim'].setdefault(str(o.get('ajan')), {'baslangic': 0, 'metin': ''})
+            b['metin'] += str(o.get('metin') or '')
+            fazla = len(b['metin']) - ORKESTRA_AKIM_SINIRI
+            if fazla > 0:  # mutlak konum korunur: istemci 'konum'la artımlı okur
+                b['baslangic'] += fazla
+                b['metin'] = b['metin'][fazla:]
+        elif t == 'bitti':
+            ork['sonuc'] = str(o.get('sonuc') or '')
+            jeton = o.get('jeton') or {}
+            ork['jeton'] = {k: int(jeton.get(k) or 0) for k in ('girdi', 'cikti', 'onbellek')}
+            ork['durum'] = 'bitti'
+        elif t == 'hata':
+            ork['hata'] = str(o.get('mesaj') or 'Bilinmeyen hata.')
+            ork['durum'] = 'hata'
+
+
+def ork_okuyucu(surec, hata_dosyasi):
+    """Çalışma bitene kadar runner'ın stdout'unu satır satır okur."""
+    son_kayit = 0.0
+    try:
+        for satir in surec.stdout:
+            satir = satir.strip()
+            if not satir.startswith('{'):
+                continue
+            try:
+                ork_olay(json.loads(satir))
+            except ValueError:
+                continue
+            if time.time() - son_kayit > 3:
+                son_kayit = time.time()
+                ork_kaydet()
+        surec.wait()
+    except Exception:
+        log('orkestra okuyucu hatasi: ' + traceback.format_exc())
+    finally:
+        try:
+            hata_dosyasi.close()
+        except OSError:
+            pass
+        with ork_kilit:
+            if ork['durum'] == 'suruyor':
+                if ork['iptal']:
+                    ork['durum'] = 'iptal'
+                else:
+                    ipucu = ilk_satir('\n'.join(reversed(kuyruk(ORKESTRA_HATA, 4000)[-6:])))
+                    ork['durum'] = 'hata'
+                    ork['hata'] = 'Orkestra süreci beklenmedik kapandı (kod %s). %s' % (surec.returncode, ipucu)
+            ork['calisma']['bitis'] = time.time()
+        ork_kaydet()
+
+
+def ork_calisma_klasoru(ham):
+    ham = str(ham or '').strip().strip('"')
+    if not ham:
+        os.makedirs(ORKESTRA_BOS_KLASOR, exist_ok=True)
+        return ORKESTRA_BOS_KLASOR
+    if not os.path.isabs(ham) or not os.path.isdir(ham):
+        raise ValueError('Çalışma klasörü bulunamadı: %s (tam yol yaz, örn. D:\\bireysel\\proje)' % ham)
+    return os.path.normpath(ham)
+
+
+def orkestra_baslat(govde):
+    global ork, ork_surec
+    hedef = str(govde.get('hedef') or '').strip()
+    if len(hedef) < 3:
+        raise ValueError('Şefe verilecek görevi yaz.')
+    if len(hedef) > 20_000:
+        raise ValueError('Görev en çok 20.000 karakter olabilir.')
+    if not os.path.isfile(os.path.join(ORKESTRA_KLASOR, 'runner.py')):
+        raise RuntimeError('orkestra/runner.py bulunamadı.')
+    sef = str(govde.get('sef') or '')
+    isciler = [str(k) for k in (govde.get('isciler') or [])]
+
+    def adli(sozluk, tur):
+        temiz = {}
+        for k, v in dict(sozluk or {}).items():
+            if not ORKESTRA_AD.match(str(k)) or not ORKESTRA_AD.match(str(v)):
+                raise ValueError('Geçersiz %s: %r' % (tur, v))
+            temiz[str(k)] = str(v)
+        return temiz
+
+    spec = {'hedef': hedef, 'sef': sef or None, 'model': str(govde.get('model') or '') or None,
+            'effort': str(govde.get('effort') or '') or None,
+            'isciler': isciler, 'modeller': adli(govde.get('modeller'), 'model'),
+            'eforlar': adli(govde.get('eforlar'), 'akıl yürütme seviyesi'),
+            'klasor': ork_calisma_klasoru(govde.get('klasor'))}
+    for deger in [spec['sef'], spec['model'], spec['effort'], *isciler]:
+        if deger and not ORKESTRA_AD.match(deger):
+            raise ValueError('Geçersiz değer: %r' % deger)
+    sahte = bool(govde.get('sahte'))  # deneme kipi: gerçek CLI çağrılmaz, kota yemez
+    with ork_kilit:
+        if ork['durum'] == 'suruyor':
+            raise ValueError('Bir orkestra çalışması zaten sürüyor.')
+        ork = ork_bos()
+        ork.update(durum='suruyor', calisma={'hedef': hedef, 'sef': sef, 'model': spec['model'], 'effort': spec['effort'],
+                                             'isciler': isciler, 'klasor': spec['klasor'], 'sahte': sahte,
+                                             'basladi': time.time(), 'bitis': None})
+    os.makedirs(ORKESTRA_VERI, exist_ok=True)
+    spec_yolu = os.path.join(ORKESTRA_VERI, 'calisma-spec.json')
+    json_yaz(spec_yolu, spec)
+    hata_dosyasi = open(ORKESTRA_HATA, 'w', encoding='utf-8')
+    try:
+        ork_surec = subprocess.Popen(
+            ork_komut('--calistir', spec_yolu, *(['--sahte'] if sahte else [])), cwd=ORKESTRA_KLASOR, env=ork_ortam(),
+            stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=hata_dosyasi, text=True, encoding='utf-8',
+            errors='replace', creationflags=CREATE_NO_WINDOW)
+    except OSError as e:
+        hata_dosyasi.close()
+        with ork_kilit:
+            ork.update(durum='hata', hata='Orkestra başlatılamadı: %s' % e)
+        raise RuntimeError('Orkestra başlatılamadı: %s' % e)
+    threading.Thread(target=ork_okuyucu, args=(ork_surec, hata_dosyasi), daemon=True).start()
+    return 'Şef görevi aldı%s: plan hazırlanıyor.' % (' (deneme kipi)' if sahte else '')
+
+
+def orkestra_iptal(_):
+    with ork_kilit:
+        if ork['durum'] != 'suruyor':
+            raise ValueError('Süren bir orkestra çalışması yok.')
+        ork['iptal'] = True
+        surec = ork_surec
+    if surec and surec.poll() is None:
+        agaci_kapat(surec.pid)  # runner ve altındaki CLI süreçleri (claude/codex/muse...) birlikte
+    return 'Orkestra durduruldu.'
+
+
+def orkestra_katalog(tara=False):
+    """Sağlayıcılar, modeller ve akıl yürütme seviyeleri (orkestra/runner.py --katalog)."""
+    if _katalog['veri'] is not None and not tara:
+        return _katalog['veri']
+    r = subprocess.run(ork_komut('--katalog', *(['--tara'] if tara else [])), capture_output=True, text=True,
+                       encoding='utf-8', errors='replace', env=ork_ortam(), cwd=ORKESTRA_KLASOR,
+                       creationflags=CREATE_NO_WINDOW, timeout=180 if tara else 30)
+    satir = next((s for s in r.stdout.splitlines() if s.startswith('{')), '')
+    try:
+        veri = json.loads(satir)
+    except ValueError:
+        raise RuntimeError('Orkestra kataloğu okunamadı: %s' % (ilk_satir(r.stderr, r.stdout) or 'kod %s' % r.returncode))
+    _katalog['veri'] = veri
+    return veri
+
+
+def orkestra_tara(_):
+    veri = orkestra_katalog(tara=True)
+    return 'Modeller CLI\'lardan yeniden tarandı (%d sağlayıcı).' % len(veri.get('saglayicilar') or [])
+
+
+def orkestra_durumu(ajan='', konum=0):
+    """Orkestra sekmesinin 1-2 sn'de bir yokladığı durum. Mesaj içeriği ayrı (mesaj_icerigi); canlı çıktı
+    seçili ajan için 'konum'dan sonrası."""
+    with ork_kilit:
+        simdi = time.time()
+        c = dict(ork['calisma'])
+        if c.get('basladi'):
+            c['sure_sn'] = int((c.get('bitis') or simdi) - c['basladi'])
+        akim = ork['akim'].get(ajan)
+        akim_cevap = None
+        if akim is not None:
+            bas = max(konum, akim['baslangic'])
+            akim_cevap = {'ajan': ajan, 'konum': akim['baslangic'] + len(akim['metin']),
+                          'metin': akim['metin'][bas - akim['baslangic']:]}
+        return {'durum': ork['durum'], 'calisma': c, 'ajanlar': dict(ork['ajanlar']), 'plan': list(ork['plan']),
+                'mesajlar': [{k: v for k, v in m.items() if k != 'icerik'} for m in ork['mesajlar']],
+                'jeton': dict(ork['jeton']), 'sonuc': ork['sonuc'], 'hata': ork['hata'], 'akim': akim_cevap,
+                'akim_ajanlari': {a: b['baslangic'] + len(b['metin']) for a, b in ork['akim'].items()}}
+
+
+def orkestra_ozet():
+    with ork_kilit:
+        return {'durum': ork['durum'], 'hedef': str(ork['calisma'].get('hedef') or '')[:80]}
+
+
+def mesaj_icerigi(kimlik):
+    with ork_kilit:
+        m = next((m for m in ork['mesajlar'] if m.get('id') == kimlik), None)
+    if not m:
+        raise ValueError('Mesaj bulunamadı.')
+    return {'icerik': m.get('icerik') or ''}
+
+
+try:
+    ork_yukle()
+except Exception:
+    log('orkestra kaydi okunamadi: ' + traceback.format_exc())
+
+
 ISLEMLER = {'gec': gec, 'en-iyi': en_iyi, 'durdur': durdur, 'ac': ac, 'esik': esik_kaydet, 'ekle': ekle,
             'ekle-iptal': ekle_iptal, 'sil': sil, 'kapandi': kapandi, 'claude-ai': claude_ai,
-            'sifirla-sira': sifirla_sira, 'sifirla-iptal': sifirla_iptal,
-            'pencere-kaydet': pencere_kaydet, 'pencere-simdi': pencere_simdi}
+            'sifirla-sira': sifirla_sira, 'sifirla-iptal': sifirla_iptal, 'sifirlama-hak': sifirlama_hak,
+            'pencere-kaydet': pencere_kaydet, 'pencere-simdi': pencere_simdi,
+            'orkestra-baslat': orkestra_baslat, 'orkestra-iptal': orkestra_iptal, 'orkestra-tara': orkestra_tara}
 
 
 class Isleyici(BaseHTTPRequestHandler):
@@ -822,6 +1143,21 @@ class Isleyici(BaseHTTPRequestHandler):
                 return self.yanit(200, durum())
             except Exception as e:
                 log('durum hatasi: ' + traceback.format_exc())
+                return self.yanit(500, {'hata': str(e)})
+        if yol.path in ('/api/orkestra', '/api/orkestra/katalog', '/api/orkestra/mesaj'):
+            if not self.yetkili():
+                return self.yanit(403, {'hata': 'Yetkisiz istek.'})
+            q = {k: v[0] for k, v in parse_qs(yol.query).items()}
+            try:
+                if yol.path == '/api/orkestra/katalog':
+                    return self.yanit(200, orkestra_katalog())
+                if yol.path == '/api/orkestra/mesaj':
+                    return self.yanit(200, mesaj_icerigi(q.get('id', '')))
+                return self.yanit(200, orkestra_durumu(q.get('ajan', ''), int(q.get('konum') or 0)))
+            except ValueError as e:
+                return self.yanit(400, {'hata': str(e)})
+            except Exception as e:
+                log('%s hatasi: %s' % (yol.path, traceback.format_exc()))
                 return self.yanit(500, {'hata': str(e)})
         self.yanit(404, {'hata': 'Yok.'})
 
@@ -902,7 +1238,8 @@ def calis(sunucu):
         while True:
             time.sleep(15)
             with kilit:
-                mesgul = ekleme.get('durum') == 'suruyor' or islem_sayisi > 0 or sira.get('durum') == 'suruyor'
+                mesgul = (ekleme.get('durum') == 'suruyor' or islem_sayisi > 0 or sira.get('durum') == 'suruyor'
+                          or orkestra_ozet()['durum'] == 'suruyor')  # süren orkestra: sunucu kapanmaz, devretmez
             if mesgul:
                 continue
             if time.time() - son_istek > BOSTA_KAPAN_SN:
